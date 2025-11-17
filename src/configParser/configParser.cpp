@@ -1,12 +1,13 @@
-#include "../../include/parser.hpp"
+#include "../../include/configParser.hpp"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 // parse config: look for file extension - order: global (or missing) - server must have listen, server_name; root & error & location optional { location{}}
 
-Parser::Parser() {}
+ConfigParser::ConfigParser() {}
 
-Parser::~Parser() {}
+ConfigParser::~ConfigParser() {}
 
 bool validateType(Type t, std::string value)
 {
@@ -14,12 +15,14 @@ bool validateType(Type t, std::string value)
     {
         case NUMBER:
             return isNumber(value);
+        case NBR_AUTO:
+            return isNumber(value) || (value == "auto");
         case PATH:
             return isPath(value);
         case BOOLEAN:
             return isBoolean(value);
         case STRING:
-            return !token.empty();
+            return !value.empty();
         case LIST:
             // need to implement
         case MAP:
@@ -29,19 +32,16 @@ bool validateType(Type t, std::string value)
     }
 }
 
-void Parser::parseServer(std::vector<std::string> tokens, size_t& i)
+/* void ConfigParser::parseServer(std::vector<std::string> tokens, size_t& i)
 {
     i++;
     if (tokens[i] != "{")
-    {
-        std::cerr << "invalid server block: missing '{' \n";
-        exit(EXIT_FAILURE);
-    }
+        throw std::runtime_error("ConfigSyntaxError: expected: '{', got: '" + tokens[i] + "'");
     i++;
     while (i < tokens.size() && tokens[i] != "}")
     
 
-}
+} */
 
 /* for (size_t i = 0; i < tokens.size(); i++) {
     std::string token = tokens[i];
@@ -65,41 +65,58 @@ void Parser::parseServer(std::vector<std::string> tokens, size_t& i)
 
 std::vector<std::string> tokenizeFile(const std::string& path)
 {
-    std::ifstream file(filename);
+    std::ifstream file(path);
     if (!file.is_open())
-    {
-        throw std::runtime_error("Cannot open file: " + filename);
-    }
+        throw std::runtime_error("Cannot open file: " + path);
     
     std::vector<std::string> tokens;
-    std::string word;
-    
-    while (file >> word)
-        tokens.push_back(word);
-    
+    std::string line;
+
+    while (std::getline(file,line))
+    {
+        size_t comment = line.find('#');
+        if (comment != std::string::npos)
+            line = line.substr(0, comment);
+
+        std::istringstream iss(line);
+        std::string word;
+
+        while (iss >> word)
+        {
+            if (!word.empty() && word.back() == ';')
+            {
+                tokens.push_back(word.substr(0, word.size() - 1));
+                tokens.push_back(";");
+            }
+            else
+                tokens.push_back(word);
+        }
+    }
     return tokens;
 }
 
-void Parser::parse(const std::string& path)
+void ConfigParser::parse(const std::string& path)
 {
     std::vector<std::string> tokens = tokenizeFile(path);
+
     size_t i = 0;
 
-    while (i < tokens.size()) 
+    parseGlobalConfig(tokens, i);
+    std::cout << "Global Config vals: wp: " << global_config.worker_processes << " el: " << global_config.error_log << " pid: " << global_config.pid << std::endl;
+
+/*     while (i < tokens.size()) 
     {
-        if (token != "server")
-            parseGlobalConfig(tokens, i);
-        else
+        if (tokens[i] == "server")
             parseServer(tokens, i);
-    }
+    } */
 }
 
 
-const GlobalConfig& getGlobalConfig() const
+const GlobalConfig& ConfigParser::getGlobalConfig() const
 {
     return global_config;
 }
-const std::vector<ServerConfig>& getServers() const
+const std::vector<ServerConfig>& ConfigParser::getServers() const
 {
     return servers;
 }

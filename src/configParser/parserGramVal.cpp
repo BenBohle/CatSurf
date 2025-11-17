@@ -1,4 +1,4 @@
-#include "../../include/parser.hpp"
+#include "../../include/configParser.hpp"
 
 // what inside locations?
 // default for anything besides listen
@@ -10,11 +10,11 @@ autoindex - defaults to off
 client_max_body_size - defaults to 1m or similar
 error_page - uses default error pages */
 
-const std::map<Block, std::map<std::string, Type>> grammar =
+const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
 {
     {GLOBAL, 
         {
-            {"worker_processes", NUMBER},
+            {"worker_processes", NBR_AUTO},
             {"error_log", PATH},
             {"pid", PATH}
         }
@@ -34,16 +34,16 @@ const std::map<Block, std::map<std::string, Type>> grammar =
             {"root", PATH},
             {"autoindex", BOOLEAN},
             {"index", LIST},
-            {"methods"}
+            {"methods", LIST}
     }
     }
 };
 
-void Parser::required() 
+/* void ConfigParser::required() 
 {
     if (!has("listen"))
         throw std::runtime_error("Missing required 'listen' directive");
-}
+} */
 
 bool isNumber(const std::string& str)
 {

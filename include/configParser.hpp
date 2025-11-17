@@ -1,8 +1,10 @@
-#ifndef PARSER_HPP
-#define PARSER_HPP
+#ifndef CONFIGPARSER_HPP
+#define CONFIGPARSER_HPP
 
 #include <string>
 #include <map>
+#include <vector>
+#include <iostream>
 
 /***********************************************************/
 /*                       STRUCTS                           */
@@ -10,9 +12,9 @@
 
 struct GlobalConfig
 {
-    std::string worker_processes;
-    std::string error_log_path;
-    std::string pid_path;
+    int worker_processes;
+    std::string error_log;
+    std::string pid;
 };
 
 struct LocationConfig
@@ -43,36 +45,43 @@ struct Config
 enum Type
 {
     NUMBER,
+    NBR_AUTO,
     PATH,
     BOOLEAN,
     STRING,
     LIST,
     MAP
-}
+};
+
 enum Block
 {
     GLOBAL,
     SERVER,
     LOCATION
-}
+};
 
 /***********************************************************/
 /*                       CLASS                             */
 /***********************************************************/
 
-class Parser
+class ConfigParser
 {
     private:
-    static const std::map<std::map<Block, std::string>, Type> grammar;
+    static const std::map<Block, std::map<std::string, Type>> grammar;
 
     GlobalConfig global_config;
     std::vector<ServerConfig> servers;
 
-    void parseGlobalConfig(std::string &path);
-    void parseServerBlock(std::string &path);
+    void parseGlobalConfig(const std::vector<std::string>& tokens, size_t& i);
+    void setDefaultGC();
+    void setGlobalDirective(const std::string& key, const std::string& value, Type t);
+    void parseServer(std::vector<std::string> tokens, size_t& i);
     void required();
 
     public:
+    ConfigParser();
+    ~ConfigParser();
+
     void parse(const std::string& path);
     const GlobalConfig& getGlobalConfig() const;
     const std::vector<ServerConfig>& getServers() const;
