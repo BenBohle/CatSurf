@@ -1,5 +1,4 @@
 #include "../../include/configParser.hpp"
-#include <regex>
 
 // what inside locations?
 // default for anything besides listen
@@ -18,7 +17,7 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
         {
             {"listen", NUMBER},
             {"root", PATH},
-            {"index", FILE},
+            {"index", FILENAME},
             {"server_name", DOMAIN},
             {"error_page", MAP},
             {"location", BLOCK}
@@ -28,17 +27,11 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
         {
             {"root", PATH},
             {"autoindex", BOOLEAN},
-            {"index", FILE},
+            {"index", FILENAME},
             {"methods", METH}
-    }
+        }
     }
 };
-
-/* void ConfigParser::required() 
-{
-    if (!has("listen"))
-        throw std::runtime_error("Missing required 'listen' directive");
-} */
 
 bool isMethod(const std::string& str)
 {
@@ -46,17 +39,27 @@ bool isMethod(const std::string& str)
            str == "PUT" || str == "HEAD" || str == "OPTIONS";
 }
 
-bool isFilename(const std::string& str)
+bool isDomainname(const std::string& str)
 {
-    if (str.empty() || str.find_first_of("/\0") != std::string::npos || str.length() >= 255)
+    if (str.empty() || str.length() > 253 || str.find('/') != std::string::npos)
+        return false;
+
+    for (char c : str)
+    {
+        if (!std::isalnum(c) && c != '.' && c != '-' && c != ':' && c != '_')
+            return false;
+    }
+    if (str[0] == '.' || str[0] == '-' || str.back() == '.' || str.back() == '-')
         return false;
     return true;
 }
 
-bool isDomainname(const std::string& str)
+bool isFilename(const std::string& str)
 {
-    std::regex pat("^[A-Za-z0-9-]{1,63}\\.[A-Za-z]{2,6}$");
-    return regex_match(str, pat);
+    if (str.empty() || str.find_first_of("/\0") != std::string::npos
+        || str.length() > 255)
+        return false;
+    return true;
 }
 
 bool isNumber(const std::string& str)

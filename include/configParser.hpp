@@ -52,10 +52,11 @@ enum Type
     NBR_AUTO,
     PATH,
     BOOLEAN,
-    STRING,
-    LIST,
+    FILENAME,
+    DOMAIN,
     MAP,
-    BLOCK
+    BLOCK,
+    METH
 };
 
 enum Block
@@ -80,8 +81,12 @@ class ConfigParser
 
     void parseGlobalConfig(const std::vector<std::string>& tokens, size_t& i);
     void setDefaultGC();
-    void setGlobalDirective(const std::string& key, const std::string& value, Type t);
-    void parseServer(std::vector<std::string> tokens, size_t& i);
+    void setServerDefaults(ServerConfig &serv);
+    void setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv);
+    void setServerDirective(const std::string& key, const std::vector<std::string>& value, Type t, ServerConfig& serv);
+    
+    void setGlobalDirective(const std::string& key, const std::string& value);
+    void parseServer(const std::vector<std::string>& tokens, size_t& i);
     void required();
 
     public:
@@ -91,6 +96,7 @@ class ConfigParser
     void parse(const std::string& path);
     const GlobalConfig& getGlobalConfig() const;
     const std::vector<ServerConfig>& getServers() const;
+    void test_print();
 };
 
 /***********************************************************/
@@ -99,9 +105,13 @@ class ConfigParser
 
 
 std::vector<std::string> tokenizeFile(const std::string& path);
-bool validateType(Type t, std::string value);
+bool validateType(Type t, const std::string& value);
+bool validateType(Type t, const std::vector<std::string>& value);
 bool isNumber(const std::string& str);
 bool isPath(const std::string& str);
 bool isBoolean(const std::string& str);
+bool isFilename(const std::string& str);
+bool isDomainname(const std::string& str);
+bool isMethod(const std::string& str);
 
 #endif

@@ -49,6 +49,4 @@ void ConfigParser::parseGlobalConfig(const std::vector<std::string>& tokens, siz
         i += 3;
     }
     setDefaultGC();
-    if (i >= tokens.size())
-        throw std::runtime_error("No server block found in config file");
 }

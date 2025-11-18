@@ -9,50 +9,50 @@ ConfigParser::ConfigParser() {}
 
 ConfigParser::~ConfigParser() {}
 
-bool validateType(Type t, std::vector<std::string>& value)
+bool validateType(Type t, const std::vector<std::string>& value)
 {
     if (value.empty())
         return false;
     switch(t)
     {
         case METH:
-            for (size_t i = 0; i < value.size(), i++)
+            for (size_t i = 0; i < value.size(); i++)
             {
                 if (!isMethod(value[i]))
                     return false;
             }
                 return true;
         case DOMAIN:
-            for (size_t i = 0; i < value.size(), i++)
+            for (size_t i = 0; i < value.size(); i++)
             {
-                if (!isDomain(value[i]))
+                if (!isDomainname(value[i]))
                     return false;
             }
                 return true;
-        case FILE:
-            for (size_t i = 0; i < value.size(), i++)
+        case FILENAME:
+            for (size_t i = 0; i < value.size(); i++)
             {
-                if (!isFile(value[i]))
+                if (!isFilename(value[i]))
                     return false;
             }
                 return true;
         case MAP:
             if (value.size() < 2)
                 return false;
-            for (size_t i = 0; i < value.size() - 1, i++)
+            for (size_t i = 0; i < value.size() - 1; i++)
             {
                 if (!isNumber(value[i]))
                     return false;
             }
-            if (!isPath(value[i]))
-                return false
+            if (!isPath(value.back()))
+                return false;
             return true;
         default:
             return false;
     }
 }
 
-bool validateType(Type t, std::string& value)
+bool validateType(Type t, const std::string& value)
 {
     switch (t) 
     {

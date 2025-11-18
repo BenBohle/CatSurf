@@ -8,43 +8,43 @@ autoindex - defaults to off
 client_max_body_size - defaults to 1m or similar
 error_page - uses default error pages */
 
-void setServerDefaults(ServerConfig &serv)
+void ConfigParser::setServerDefaults(ServerConfig &serv)
 {
     if (serv.root.empty())
         serv.root = "/var/www/html";
     if (serv.server_name.empty())
-        serv.server_name = {"_"}
-    if (serv.index.empty())
-        serv.index = {"index.html"};
-    if (serv.error_page.empty())
-        serv.error_page = {{404, "/404.html"}, {500, "/50x.html"}}
+        serv.server_name = {"_"};
+    if (serv.index_files.empty())
+        serv.index_files = {"index.html"};
+    if (serv.error_pages.empty())
+        serv.error_pages = {{404, "/404.html"}, {500, "/50x.html"}};
 }
 
-void ConfigParser::setServerDirective(const std::string& key, const std::string& value, Type t)
+void ConfigParser::setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv)
 {
     if (!validateType(t, value))
         throw std::runtime_error("Invalid value for directive: " + key);
     if (key == "listen")
-        servers[server_amnt].listen_port = stoi(value);
+        serv.listen_port = stoi(value);
     else if (key == "root")
-        servers[server_amnt].root = value;
+        serv.root = value;
 }
 
-void ConfigParser::setServerDirective(const std::string& key, const std::vector<string>& value, Type t, ServerConfig& serv)
+void ConfigParser::setServerDirective(const std::string& key, const std::vector<std::string>& value, Type t, ServerConfig& serv)
 {
     if (!validateType(t, value))
         throw std::runtime_error("Invalid value for directive: " + key);
     if (key == "index")
-        serv.index = value;
+        serv.index_files = value;
     else if (key == "server_name")
         serv.server_name = value;
-    else if (key == "error_page") // need to fix map thingy
+    else if (key == "error_pages")
     {
-        const std::string& path = values.back();
-        for (size_t i = 0; i < values.size() - 1; i++)
+        const std::string& path = value.back();
+        for (size_t i = 0; i < value.size() - 1; i++)
         {
-            int code = std::stoi(values[i]);
-            serv.error_page[code] = path;
+            int code = std::stoi(value[i]);
+            serv.error_pages[code] = path;
         }
     }
 }
@@ -62,13 +62,13 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
         const std::string& key = tokens[i]; 
         if (i + 1 >= tokens.size())
             throw std::runtime_error("Missing value for directive: " + key);
-        if (key == "location")
-            parseLocation();
+/*         if (key == "location")
+            parseLocation(); */
         else if (grammar.at(SERVER).find(key) != grammar.at(SERVER).end())
         {
             Type t = grammar.at(SERVER).at(key);
 
-            else if (t == DOMAIN|| t == FILE || t == MAP)
+            if (t == DOMAIN|| t == FILENAME || t == MAP)
             {
                 std::vector<std::string> values;
                 i++;
@@ -79,7 +79,7 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
                 }
                 if (i >= tokens.size() || tokens[i] != ";")
                     throw std::runtime_error("Syntax error: Missing ';'");
-                setServerDirective(server, key, values, t);
+                setServerDirective(key, values, t, serv);
                 i++;
             }
             else 
@@ -89,7 +89,7 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
                     throw std::runtime_error("Syntax error: Missing ';'");
                 if (!validateType(t, value))
                     throw std::runtime_error("Invalid type for directive: " + key);
-                setServerDirective(server, key, value, t);
+                setServerDirective(key, value, t, serv);
                 i += 3;
             }
         }
@@ -100,10 +100,9 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
     if (i >= tokens.size() || tokens[i] != "}")
         throw std::runtime_error("Unclosed server block");
     i++;
-    if (server.listen_port == 0)
+    if (serv.listen_port == 0)
         throw std::runtime_error("Missing required 'listen' directive in server block");
     
-    /* setServerDefaults(server); */
-    
+    setServerDefaults(serv);
     servers.push_back(serv);
 }
