@@ -1,14 +1,9 @@
 #include "../../include/configParser.hpp"
+#include <regex>
 
 // what inside locations?
 // default for anything besides listen
 // client_max_body_size?
-/* root - defaults to some system path like /var/www/html
-server_name - defaults to empty/catch-all
-index - defaults to index.html
-autoindex - defaults to off
-client_max_body_size - defaults to 1m or similar
-error_page - uses default error pages */
 
 const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
 {
@@ -23,8 +18,8 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
         {
             {"listen", NUMBER},
             {"root", PATH},
-            {"index", LIST},
-            {"server_name", LIST},
+            {"index", FILE},
+            {"server_name", DOMAIN},
             {"error_page", MAP},
             {"location", BLOCK}
         }
@@ -33,8 +28,8 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
         {
             {"root", PATH},
             {"autoindex", BOOLEAN},
-            {"index", LIST},
-            {"methods", LIST}
+            {"index", FILE},
+            {"methods", METH}
     }
     }
 };
@@ -44,6 +39,25 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
     if (!has("listen"))
         throw std::runtime_error("Missing required 'listen' directive");
 } */
+
+bool isMethod(const std::string& str)
+{
+    return str == "GET" || str == "POST" || str == "DELETE" || 
+           str == "PUT" || str == "HEAD" || str == "OPTIONS";
+}
+
+bool isFilename(const std::string& str)
+{
+    if (str.empty() || str.find_first_of("/\0") != std::string::npos || str.length() >= 255)
+        return false;
+    return true;
+}
+
+bool isDomainname(const std::string& str)
+{
+    std::regex pat("^[A-Za-z0-9-]{1,63}\\.[A-Za-z]{2,6}$");
+    return regex_match(str, pat);
+}
 
 bool isNumber(const std::string& str)
 {

@@ -11,21 +11,19 @@ void ConfigParser::setDefaultGC()
         global_config.pid = "./webserv.pid";
 }
 
-void ConfigParser::setGlobalDirective(const std::string& key, const std::string& value, Type t)
+void ConfigParser::setGlobalDirective(const std::string& key, const std::string& value)
 {
-    if (key == "worker_processes" && t == NBR_AUTO)
+    if (key == "worker_processes")
     {
         if (value == "auto")
             global_config.worker_processes = std::thread::hardware_concurrency();
         else
             global_config.worker_processes = std::stoi(value);
     }
-    else if (key == "error_log" && t == PATH)
+    else if (key == "error_log")
         global_config.error_log = value;
-    else if (key == "pid" && t == PATH)
+    else if (key == "pid")
         global_config.pid = value;
-    else 
-        throw std::runtime_error("Unknown global directive: " + key);
 }
 
 void ConfigParser::parseGlobalConfig(const std::vector<std::string>& tokens, size_t& i)
@@ -38,16 +36,13 @@ void ConfigParser::parseGlobalConfig(const std::vector<std::string>& tokens, siz
             throw std::runtime_error("Missing value for global directive: " + key);
         if (i + 2 >= tokens.size() || tokens[i + 2] != ";")
             throw std::runtime_error("Syntax error: Missing ';'");
-
         const std::string& value = tokens[i + 1];
-
         if (grammar.at(GLOBAL).find(key) != grammar.at(GLOBAL).end()) 
         {
             Type t = grammar.at(GLOBAL).at(key);
             if (!validateType(t, value))
                 throw std::runtime_error("Invalid type for directive: " + key);
-
-            setGlobalDirective(key, value, t);
+            setGlobalDirective(key, value);
         }
         else
             throw std::runtime_error("Invalid directive in global block: " + tokens[i]);
