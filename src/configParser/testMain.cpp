@@ -27,7 +27,24 @@ void ConfigParser::test_print()
             std::cout << it->first << " - " << it->second << ", ";
         std::cout << std::endl;
         std::cout << RED << "------------------------------------------------" << std::endl;
+    for (size_t k = 0; k < servers[i].locations.size(); k++)
+    {
+    std::cout << BLUE << "Location vals:" << std::endl;
+    std::cout << "location" << k << std::endl;
+    std::cout << RESET << "path: " << servers[i].locations[k].path << ", root: " << servers[i].locations[k].root << std::endl;
+    std::cout << "autoindex: " << servers[i].locations[k].autoindex << std::endl;
+    std::cout << "index files:";
+    for (size_t j = 0; j < servers[i].locations[k].index_files.size(); j++)
+        std::cout << servers[i].locations[k].index_files[j] << ", ";
+        std::cout << std::endl;
+    std::cout << "allowed methods: ";
+    for (size_t j = 0; j < servers[i].locations[k].allow_methods.size(); j++)
+        std::cout << servers[i].locations[k].allow_methods[j] << ", ";
+    std::cout << std::endl;
+    std::cout << RED << "------------------------------------------------" << std::endl;
     }
+}
+
 }
 
 int main(int argc, char *argv[])

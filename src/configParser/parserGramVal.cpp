@@ -28,7 +28,7 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
             {"root", PATH},
             {"autoindex", BOOLEAN},
             {"index", FILENAME},
-            {"methods", METH}
+            {"allow_methods", METH}
         }
     }
 };
@@ -37,8 +37,8 @@ bool isMethod(const std::string& str)
 {
     if (str.empty())
         return false;
-    return str == "GET" || str == "POST" || str == "DELETE" || 
-           str == "PUT" || str == "HEAD" || str == "OPTIONS";
+
+    return str == "GET" || str == "POST" || str == "DELETE";
 }
 
 bool isDomainname(const std::string& str)

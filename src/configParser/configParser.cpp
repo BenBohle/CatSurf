@@ -19,6 +19,8 @@ bool validateType(Type t, const std::vector<std::string>& value)
         case METH:
             for (size_t i = 0; i < value.size(); i++)
             {
+                /* std::cout << value[i] << std::endl; */
+                std::cout << isMethod(value[i]) << std::endl;
                 if (!isMethod(value[i]))
                     return false;
             }

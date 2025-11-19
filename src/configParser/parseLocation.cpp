@@ -1,6 +1,19 @@
 #include "../../include/configParser.hpp"
 #include <set>
 
+void ConfigParser::setLocationDefaults(ServerConfig& serv)
+{
+    for (size_t i = 0; i < serv.locations.size(); i++)
+    {
+        if (serv.locations[i].root.empty())
+            serv.locations[i].root = serv.root;
+        if (serv.locations[i].index_files.empty())
+            serv.locations[i].index_files = serv.index_files;
+        if (serv.locations[i].allow_methods.empty())
+            serv.locations[i].allow_methods = {"GET"};
+    }
+}
+
 void ConfigParser::setLocDirective(const std::string& key, const std::string& value, Type t, LocationConfig& loc)
 {
     if (!validateType(t, value))
@@ -8,13 +21,9 @@ void ConfigParser::setLocDirective(const std::string& key, const std::string& va
     if (key == "root")
         loc.root = value;
     else if (key == "autoindex")
-    try
     {
-        loc.autoindex = stoi(value);
-    }
-    catch (std::exception& e)
-    {
-        throw std::runtime_error("Invalid type for directive autoindex" + value);
+        if (value == "on")
+            loc.autoindex = 1;
     }
 }
 
@@ -53,9 +62,10 @@ void ConfigParser::parseLocation(const std::vector<std::string>& tokens, size_t&
 
         if (i + 1 >= tokens.size())
             throw std::runtime_error("Missing value for directive: " + key);
-        else if (grammar.at(SERVER).find(key) != grammar.at(SERVER).end())
+        else if (grammar.at(LOCATION).find(key) != grammar.at(LOCATION).end())
         {
-            Type t = grammar.at(SERVER).at(key);
+            Type t = grammar.at(LOCATION).at(key);
+            i++;
 
             if (t == FILENAME || t == METH)
             {
@@ -72,13 +82,13 @@ void ConfigParser::parseLocation(const std::vector<std::string>& tokens, size_t&
             }
             else
             {
-                const std::string& value = tokens[i + 1];
-                if (i + 2 >= tokens.size() || tokens[i + 2] != ";")
-                    throw std::runtime_error("Syntax error: Missing ';'");
+                const std::string& value = tokens[i];
+                if (i + 1 >= tokens.size() || tokens[i + 1] != ";")
+                    throw std::runtime_error("Smmyntax error: Missing ';'");
                 if (!validateType(t, value))
                     throw std::runtime_error("Invalid type for directive: " + key + " inside Location Block");
                 setLocDirective(key, value, t, loc);
-                i += 3;
+                i += 2;
             }
         }
         else
@@ -87,6 +97,5 @@ void ConfigParser::parseLocation(const std::vector<std::string>& tokens, size_t&
      if (i >= tokens.size() || tokens[i] != "}")
         throw std::runtime_error("Unclosed location block");
     i++;
-    //set location defaults?
     serv.locations.push_back(loc);
 }

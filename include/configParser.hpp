@@ -82,6 +82,7 @@ class ConfigParser
     void parseGlobalConfig(const std::vector<std::string>& tokens, size_t& i);
     void setDefaultGC();
     void setServerDefaults(ServerConfig &serv);
+    void setLocationDefaults(ServerConfig& serv);
     void setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv);
     void setServerDirective(const std::string& key, const std::vector<std::string>& value, Type t, ServerConfig& serv);
     void setLocDirective(const std::string& key, const std::string& value, Type t, LocationConfig& loc);

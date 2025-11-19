@@ -112,5 +112,6 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
         throw std::runtime_error("Missing required 'listen' directive in server block");
     
     setServerDefaults(serv);
+    setLocationDefaults(serv);
     servers.push_back(serv);
 }
