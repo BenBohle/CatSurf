@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 // parse config: look for file extension - order: global (or missing) - server must have listen, server_name; root & error & location optional { location{}}
 
 ConfigParser::ConfigParser() {}
@@ -41,7 +42,7 @@ bool validateType(Type t, const std::vector<std::string>& value)
                 return false;
             for (size_t i = 0; i < value.size() - 1; i++)
             {
-                if (!isNumber(value[i]))
+                if (!isErrorCode(value[i]))
                     return false;
             }
             if (!isPath(value.back()))
@@ -56,10 +57,10 @@ bool validateType(Type t, const std::string& value)
 {
     switch (t) 
     {
-        case NUMBER:
-            return isNumber(value);
-        case NBR_AUTO:
-            return isNumber(value) || (value == "auto");
+        case PORT:
+            return isPort(value);
+        case WORK_PRC:
+            return isWorkerProcesses(value);
         case PATH:
             return isPath(value);
         case BOOLEAN:
@@ -67,6 +68,21 @@ bool validateType(Type t, const std::string& value)
         default:
             return false;
     }
+}
+
+bool validLine(std::string str)
+{
+    str.erase(std::remove_if(str.begin(), str.end(), 
+              [](unsigned char c) { return std::isspace(c); }), 
+              str.end());
+    std::cout << str << std::endl;
+    if (str == "server" || str == "server{" || str == "{" || str == "}")
+        return true;
+    if (str.find("location") != std::string::npos)
+        return true;
+    if (str.find(";") != str.size() - 1)
+        return false;
+    return true;
 }
 
 std::vector<std::string> tokenizeFile(const std::string& path)
@@ -83,6 +99,8 @@ std::vector<std::string> tokenizeFile(const std::string& path)
         size_t comment = line.find('#');
         if (comment != std::string::npos)
             line = line.substr(0, comment);
+        if (!validLine(line))
+            throw std::runtime_error("Invalid line syntax: " + line);
 
         std::istringstream iss(line);
         std::string word;
@@ -108,7 +126,6 @@ void ConfigParser::parse(const std::string& path)
     size_t i = 0;
 
     parseGlobalConfig(tokens, i);
-    std::cout << "Global Config vals: wp: " << global_config.worker_processes << " el: " << global_config.error_log << " pid: " << global_config.pid << std::endl;
 
     while (i < tokens.size()) 
     {

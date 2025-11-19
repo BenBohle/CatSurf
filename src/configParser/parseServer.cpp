@@ -1,5 +1,6 @@
 
 #include "../../include/configParser.hpp"
+#include <set>
 
 /* root - defaults to some system path like /var/www/html
 server_name - defaults to empty/catch-all
@@ -23,7 +24,7 @@ void ConfigParser::setServerDefaults(ServerConfig &serv)
 void ConfigParser::setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv)
 {
     if (!validateType(t, value))
-        throw std::runtime_error("Invalid value for directive: " + key);
+        throw std::runtime_error("Invalid value for directive: " + key + " inside Server Block");
     if (key == "listen")
         serv.listen_port = stoi(value);
     else if (key == "root")
@@ -51,19 +52,26 @@ void ConfigParser::setServerDirective(const std::string& key, const std::vector<
 
 void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i)
 {
-    ServerConfig serv;
     i++;
     if (i >= tokens.size() || tokens[i] != "{")
         throw std::runtime_error("ConfigSyntaxError: expected '{' after 'server'");
     i++;
-    
+
+    ServerConfig serv{};
+    std::set<std::string> duplicateCheck;
+
     while (i < tokens.size() && tokens[i] != "}")
     {
         const std::string& key = tokens[i]; 
+
+        if (duplicateCheck.count(key) > 0 && key != "location")
+            throw std::runtime_error("Duplicate directive: " + key);
+        duplicateCheck.insert(key); 
+
         if (i + 1 >= tokens.size())
             throw std::runtime_error("Missing value for directive: " + key);
-/*         if (key == "location")
-            parseLocation(); */
+        if (key == "location")
+            parseLocation(tokens, i, serv);
         else if (grammar.at(SERVER).find(key) != grammar.at(SERVER).end())
         {
             Type t = grammar.at(SERVER).at(key);

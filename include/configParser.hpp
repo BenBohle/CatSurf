@@ -12,7 +12,7 @@
 
 struct GlobalConfig
 {
-    unsigned int worker_processes;
+    unsigned int worker_processes = 0;
     std::string error_log;
     std::string pid;
 };
@@ -21,15 +21,15 @@ struct LocationConfig
 {
     std::string path;
     std::string root;
-    bool autoindex;
+    bool autoindex = 0;
     std::vector<std::string> index_files;
-    std::vector<std::string> allowed_methods;
+    std::vector<std::string> allow_methods;
 };
 
 struct ServerConfig
 {
     std::vector<std::string> server_name;
-    int listen_port;
+    int listen_port = 0;
     std::string root;
     std::vector<std::string> index_files;
     std::map<int, std::string> error_pages;
@@ -48,8 +48,8 @@ struct Config
 
 enum Type
 {
-    NUMBER,
-    NBR_AUTO,
+    PORT,
+    WORK_PRC,
     PATH,
     BOOLEAN,
     FILENAME,
@@ -84,10 +84,11 @@ class ConfigParser
     void setServerDefaults(ServerConfig &serv);
     void setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv);
     void setServerDirective(const std::string& key, const std::vector<std::string>& value, Type t, ServerConfig& serv);
-    
+    void setLocDirective(const std::string& key, const std::string& value, Type t, LocationConfig& loc);
+    void setLocDirective(const std::string& key, const std::vector<std::string>& value, Type t, LocationConfig& loc);
     void setGlobalDirective(const std::string& key, const std::string& value);
     void parseServer(const std::vector<std::string>& tokens, size_t& i);
-    void required();
+    void parseLocation(const std::vector<std::string>& tokens, size_t& i, ServerConfig& serv);
 
     public:
     ConfigParser();
@@ -113,5 +114,10 @@ bool isBoolean(const std::string& str);
 bool isFilename(const std::string& str);
 bool isDomainname(const std::string& str);
 bool isMethod(const std::string& str);
+bool isPort(const std::string& str);
+bool isErrorCode(const std::string& str);
+bool isWorkerProcesses(const std::string& str);
+bool isLocationPath(const std::string& str);
+bool validLine(std::string str);
 
 #endif

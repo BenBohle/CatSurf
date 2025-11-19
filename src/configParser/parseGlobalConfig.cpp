@@ -1,5 +1,6 @@
 #include "../../include/configParser.hpp"
 #include <thread>
+#include <set>
 
 void ConfigParser::setDefaultGC()
 {
@@ -28,9 +29,14 @@ void ConfigParser::setGlobalDirective(const std::string& key, const std::string&
 
 void ConfigParser::parseGlobalConfig(const std::vector<std::string>& tokens, size_t& i)
 {
+    std::set<std::string> duplicateCheck;
     while (i < tokens.size() && tokens[i] != "server") 
     {
         const std::string& key = tokens[i];
+
+        if (duplicateCheck.count(key) > 0)
+            throw std::runtime_error("Duplicate directive: " + key);
+        duplicateCheck.insert(key); 
 
         if (i + 1 >= tokens.size())
             throw std::runtime_error("Missing value for global directive: " + key);
