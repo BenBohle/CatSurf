@@ -2,13 +2,6 @@
 #include "../../include/configParser.hpp"
 #include <set>
 
-/* root - defaults to some system path like /var/www/html
-server_name - defaults to empty/catch-all
-index - defaults to index.html
-autoindex - defaults to off
-client_max_body_size - defaults to 1m or similar
-error_page - uses default error pages */
-
 void ConfigParser::setServerDefaults(ServerConfig &serv)
 {
     if (serv.root.empty())
@@ -30,7 +23,7 @@ void ConfigParser::setServerDirective(const std::string& key, const std::string&
     if (!validateType(t, value))
         throw std::runtime_error("Invalid value for directive: " + key + " inside Server Block");
     if (key == "listen")
-        serv.listen_port = stoi(value);
+        serv.listen_port.push_back(value);
     else if (key == "root")
         serv.root = value;
     else if (key == "client_max_body_size")
@@ -72,7 +65,7 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
     {
         const std::string& key = tokens[i]; 
 
-        if (duplicateCheck.count(key) > 0 && key != "location")
+        if (duplicateCheck.count(key) > 0 && key != "location" && key != "listen" && key != "error_page")
             throw std::runtime_error("Duplicate directive: " + key);
         duplicateCheck.insert(key); 
 
@@ -116,7 +109,7 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
     if (i >= tokens.size() || tokens[i] != "}")
         throw std::runtime_error("Unclosed server block");
     i++;
-    if (serv.listen_port == 0)
+    if (serv.listen_port.empty())
         throw std::runtime_error("Missing required 'listen' directive in server block");
     
     setServerDefaults(serv);

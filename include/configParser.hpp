@@ -33,7 +33,7 @@ struct LocationConfig
 struct ServerConfig
 {
     std::vector<std::string> server_name;
-    int listen_port = 0;
+    std::vector<std::string> listen_port;
     std::string root;
     int timeout;
     size_t client_max_body_size = 0;
@@ -141,7 +141,9 @@ bool isBoolean(const std::string& str);
 bool isFilename(const std::string& str);
 bool isDomainname(const std::string& str);
 bool isMethod(const std::string& str);
-bool isPortIP(const std::string& str);
+bool isListen(const std::string &str);
+bool isPort(const std::string& str);
+bool isValidIP(const std::string& ip);
 bool isErrorCode(const std::string& str);
 bool isLocationPath(const std::string& str);
 bool isSize(const std::string& str);

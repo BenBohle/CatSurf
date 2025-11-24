@@ -93,7 +93,7 @@ bool validateType(Type t, const std::string& value)
     switch (t) 
     {
         case PORT:
-            return isPortIP(value);
+            return isListen(value);
         case PATH:
             return isPath(value);
         case BOOLEAN:
@@ -160,34 +160,44 @@ bool isErrorCode(const std::string& str)
     }
 }
 
-bool isPortIP(const std::string& str)
+bool isListen(const std::string& str)
 {
-    if (!isNumber(str))
+    size_t colon = str.find(':');
+    
+    if (colon != std::string::npos)
     {
-        size_t div = str.find(':');
-        if (div != std::string::npos)
-        {
-            std::string ip = str.substr(0, div);
-            std::string port = str.substr(div + 1);
-            int dots = 0;
-            for (char c : ip) 
-            {
-                if (c == '.')
-                    dots++;
-                else if (!std::isdigit(c))
-                    return false;
-            }
-            if (dots != 3)
-                return false;
-        }
-        else
+        std::string ip = str.substr(0, colon);
+        std::string port = str.substr(colon + 1);
+        
+        return isValidIP(ip) && isPort(port);
+    } 
+    else
+        return isPort(str);
+}
+
+bool isValidIP(const std::string& ip)
+{
+    if (ip.empty())
+        return false;
+    
+    int dots = 0;
+    for (char c : ip)
+    {
+        if (c == '.')
+            dots++;
+        else if (!std::isdigit(c))
             return false;
     }
-    else
-        std::string port = str;
+    return dots == 3;
+}
+
+bool isPort(const std::string& str)
+{
+    if (!isNumber(str))
+        return false;
     try 
     {
-        int a = std::stoi(port);
+        int a = std::stoi(str);
         return a > 1 && a < 65535;
     }
     catch (const std::exception& e)
@@ -315,8 +325,9 @@ bool isRedirect(const std::vector<std::string>& values)
     try
     {
         int code = std::stoi(values[0]);
-        return code == 301 || code == 302 || code == 303 || 
-               code == 307 || code == 308;
+/*         return code == 301 || code == 302 || code == 303 || 
+               code == 307 || code == 308; */
+            return code >= 100 && code <= 599;
     }
     catch (const std::exception&)
     {

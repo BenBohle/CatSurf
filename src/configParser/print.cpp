@@ -67,13 +67,15 @@ void ConfigParser::printLocation(const LocationConfig& loc, size_t idx) const
 void ConfigParser::printServerConfig(const ServerConfig& server, size_t idx) const
 {
     std::cout << BLUE << "Server " << idx << ":" << RESET << std::endl;
-    std::cout << std::setw(18) << "listen:" << server.listen_port << std::endl;
     std::cout << std::setw(18) << "root:" << server.root << std::endl;
     std::cout << std::setw(18) << "max_size:" << server.client_max_body_size << std::endl;
     std::cout << std::setw(18) << "timeout:" << server.timeout << std::endl;
 
     std::cout << std::setw(18) << "index files:";
     printList(server.index);
+    std::cout << std::endl;
+    std::cout << std::setw(18) << "listen:";
+    printList(server.listen_port);
     std::cout << std::endl;
 
     std::cout << std::setw(18) << "server_name:";
