@@ -159,6 +159,7 @@ bool validateHeader(std::string key, std::string value)
     }
     return true;
 }
+//
 
 void HttpRequest::parseHeader(std::string cont)
 {
