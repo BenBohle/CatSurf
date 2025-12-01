@@ -5,7 +5,6 @@
 
 std::string testRequest =
     "GET /hello/world HTTP/1.1\r\n"
-    "\r\n\r\n"
     "Host: example.com\r\n"
     "User-Agent: CustomClient/1.0\r\n"
     "Accept: text/html, application/json\r\n"

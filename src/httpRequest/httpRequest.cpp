@@ -81,8 +81,8 @@ void HttpRequest::printRequest()
     std::cout << "Version: " << http_v << "\n";
 
     std::cout << "\nHeaders:\n";
-    for (const auto& h : headers)
-        std::cout << "  " << h.first << ": " << h.second << "\n";
+    for (auto it = headers.begin(); it != headers.end(); ++it)
+        std::cout << it->first << " => " << it->second << std::endl;
 
     std::cout << "======================\n";
 }
@@ -163,6 +163,7 @@ bool validateHeader(std::string key, std::string value)
 void HttpRequest::parseHeader(std::string cont)
 {
     size_t i = 0;
+    std::cout << "cont: " << cont << std::endl;
     while (i < cont.size())
     {
         size_t key_end = cont.find(':', i);
@@ -175,14 +176,15 @@ void HttpRequest::parseHeader(std::string cont)
             throw std::runtime_error("");
         
         size_t value_end = cont.find("\r\n", i);
-        if (value_end == std::string::npos)
-            throw std::runtime_error("Invalid header: missing CRLF");
         
         std::string value = cont.substr(i, value_end - i);
         headers.insert({key, value});
-        i = value_end + 2;
+
         if (!validateHeader(key, value))
             throw std::runtime_error("Invalid header in http request: " + key + ", " + value);
+        if (value_end == std::string::npos)
+            break;
+        i = value_end + 2;
     }
 }
 
@@ -239,13 +241,13 @@ HttpRequest::ParseState HttpRequest::parseRequest(const char* data, size_t len)
         else if (state == HEADERS) 
         {
             size_t pos = buffer.find("\r\n\r\n");
+            std::cout << "pos: " << pos << std::endl;
             if (pos == std::string::npos)
                 return state;
             try
             {
-                std::cout << "miao3" << std::endl; 
                 parseHeader(buffer.substr(0, pos));
-                std::cout << "miao3.1" << std::endl; 
+                std::cout << "header size: " << headers.size() << std::endl;
                 buffer.erase(0, pos + 4);
                 if (!getHeaderVal("content-length").empty())
                     content_length = std::stoi(getHeaderVal("content-length"));
@@ -255,7 +257,6 @@ HttpRequest::ParseState HttpRequest::parseRequest(const char* data, size_t len)
                     state = COMPLETE;
                 else
                     state = BODY;
-                std::cout << "ishere" << std::endl;
             }
             catch (std::exception &e)
             {
