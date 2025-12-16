@@ -20,10 +20,22 @@ enum ErrorCode
 //
 enum ParseState {REQUEST_LINE, HEADERS, BODY, COMPLETE, ERROR};
 
+struct parsedRequest
+{
+    std::string buffer;
+    std::string method;
+    std::string uri;
+    std::string http_v;
+    std::map<std::string, std::string> headers;
+    std::string body;
+    size_t content_length;
+    int error_code;
+    std::string error_info;
+};
+
 class HttpRequest 
 {
     private:
-/*     std::string content; */
     std::string buffer;
     std::string method;
     std::string uri;
@@ -53,10 +65,14 @@ class HttpRequest
     const std::string& getMethod() const;
     const std::string& getUri() const;
     const std::string getHeaderVal(const std::string& key) const;
+    parsedRequest& getRequest();
 
     //print
     void printRequest();
     void printError();
+    // helper
+    void clear();
+    void check_host();
 };
 
 bool validateURI(std::string& str);

@@ -32,7 +32,7 @@ int main()
     //missing header colon
     std::string bad1 =
         "GET / HTTP/1.1\r\n"
-        "Bad Header Missing Colon\r\n"
+        "Bad Header Missi408 Request Timeoutng Colon\r\n"
         "\r\n";
 
     {
