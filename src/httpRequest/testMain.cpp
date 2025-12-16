@@ -269,7 +269,7 @@ int main()
         else
             std::cerr << RED << "[FAIL] Did not detect space in header name\n" << RESET;
 }
-
+//
     // No final \r\n\r\n
     std::string bad15 =
     "GET / HTTP/1.1\r\n"

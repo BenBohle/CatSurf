@@ -129,7 +129,7 @@ bool isMethod(const std::string& str)
 
     return str == "GET" || str == "POST" || str == "DELETE";
 }
-
+//
 bool validateURI(std::string& str)
 {
     if (str.empty() || str.size() > MAX_URI)

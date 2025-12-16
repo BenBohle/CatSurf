@@ -17,7 +17,7 @@ enum ErrorCode
     PayloadTooLarge = 413,
     HTTPVersionNotSupported = 505
 };
-
+//
 enum ParseState {REQUEST_LINE, HEADERS, BODY, COMPLETE, ERROR};
 
 class HttpRequest 

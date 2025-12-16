@@ -11269,3 +11269,74 @@ trailer
 startxref
 670888
 %%EOF
+498 0 obj
+<</Annots[ 510 0 R 511 0 R 512 0 R 513 0 R 514 0 R 515 0 R 516 0 R 517 0 R 2869 0 R 2870 0 R 2879 0 R 2880 0 R 2889 0 R 2890 0 R]/Contents 1893 0 R/CropBox[ 0 0 595 841]/Group<</CS/DeviceRGB/I true/S/Transparency/Type/Group>>/MediaBox[ 0 0 595 841]/Parent 1 0 R/Resources 507 0 R/StructParents 240/Type/Page>>
+endobj
+2889 0 obj
+<</Type/Annot/Subtype/Highlight/P 498 0 R/F 4/M(D:20251216104352+01'00')/NM(75048be2-f5f8-4f13-8b3c-3d7ac219ccba)/Rect[ 89.155682 491.066489 94.945541 502.566209]/C[ 1 .941176 .4]/Popup 2890 0 R/CA 1/CreationDate(D:20251216104352+01'00')/QuadPoints[ 89.155682 502.566209 94.945541 502.566209 89.155682 491.066489 94.945541 491.066489]/AP<</N 2897 0 R>>>>
+endobj
+2890 0 obj
+<</Type/Annot/Subtype/Popup/Open false/F 28/Rect[ 612 382.566209 792 502.566209]/Parent 2889 0 R>>
+endobj
+2895 0 obj
+<</Length 120/Type/XObject/Subtype/Form/FormType 1/BBox[ 89.155682 491.066489 94.945541 502.566209]/Matrix[ 1 0 0 1 -89.155682 -491.066489]/Resources<</ProcSet[/PDF]>>>>
+stream
+1 .941176 .4 rg
+.718732 w
+89.155682 491.066489 m
+89.155682 502.566209 l
+94.945541 502.566209 l
+94.945541 491.066489 l
+f
+
+endstream
+endobj
+2896 0 obj
+<</Length 9/Type/XObject/Subtype/Form/FormType 1/BBox[ 0 0 5.789859 11.499719]/Matrix[ 1 0 0 1 0 0]/Resources<</ProcSet[/PDF]/XObject<</Form 2895 0 R>>>>/Group<</S/Transparency>>>>
+stream
+/Form Do
+
+endstream
+endobj
+2897 0 obj
+<</Length 20/Type/XObject/Subtype/Form/FormType 1/BBox[ 0 0 5.789859 11.499719]/Matrix[ 1 0 0 1 0 0]/Resources<</ProcSet[/PDF]/XObject<</MWFOForm 2896 0 R>>/ExtGState<</R0 2898 0 R>>>>>>
+stream
+/R0 gs
+/MWFOForm Do
+
+endstream
+endobj
+2898 0 obj
+<</Type/ExtGState/AIS false/BM/Multiply>>
+endobj
+2758 0 obj
+<</Author(Roy T. Fielding, Mark Nottingham, Julian Reschke)/CreationDate(D:20220606114600+07'00')/Creator(xml2rfc 3.12.10)/Keywords()/ModDate(D:20251216104359+01'00')/Producer(cairo 1.16.0 (https://cairographics.org))/Subject(
+       
+   The Hypertext Transfer Protocol (HTTP) is a stateless application-level
+   protocol for distributed, collaborative, hypertext information systems.
+   This document specifies the HTTP/1.1 message syntax, message parsing,
+   connection management, and related security concerns.
+ 
+       
+   This document obsoletes portions of RFC 7230.
+ 
+    )/Title(RFC 9112: HTTP/1.1)>>
+endobj
+xref
+498 1
+0000672834 00000 n
+2758 1
+0000674509 00000 n
+2889 2
+0000673161 00000 n
+0000673534 00000 n
+2895 4
+0000673651 00000 n
+0000673978 00000 n
+0000674205 00000 n
+0000674449 00000 n
+trailer
+<</Size 2899/Root 1826 0 R/Info 2758 0 R/ID[<0EAA52DD4CB4B2110A00000000000000><78B1E90D37867339531ADE82D19CD34B>]/Prev 670888>>
+startxref
+675137
+%%EOF
