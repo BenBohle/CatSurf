@@ -5,26 +5,19 @@
 #include <cctype>
 #include <algorithm>
 
-// start line (METHOD URI HTTP/1.1 \r\n) (needs to have those + one space inbetween, no extra spaces (trailing, leading, inbetween))
-// headers (Host, Content-Length, Transfer-Encoding) (key:(ows)value(ows)/r/n /r/n/r/n)
-// body
-// chunk example:
-// 5\r\n
-// hello\r\n
-// 6\r\n
-// world!\r\n
-// 0\r\n
-// \r\n
-// 505 HTTP Version Not Supported for http version besides 1.0 & 1.1
 
 /*
+1) CLOSE CONNECTION
 depending on reason need to close connection after error (". If the unrecoverable error is in a request message, the server
 respond with a 400 (Bad Request) status code and then close the connection. )")
+
+2) PREFER TRANSFER OR RESULT IN ERROR?
 TRANSFER ENCODING OVERWRITES CONTENT_LENGTH
 --> A server reject a request that contains both Content-Length and Transfer-Encoding or
 process such a request in accordance with the Transfer-Encoding alone. Regardless, the server
 close the connection after responding to such a request to avoid the potential attacks.
 
+3) ERROR CODES
 501 for any transfer coding besides chunked !!!!!!! && http1.0 no transfer coding 
 some error codes returned by parser
 Condition	Parser error_code	Server responds
@@ -35,19 +28,23 @@ Header fields too large	431	431 Request Header Fields Too Large
 URI too long	414	414 URI Too Long
 Invalid Content-Length	400	400 Bad Request
 Body too large	413	413 Payload Too Large */
-// i need to check my error handlong since i dpnt want to exit program if theres an error but handle it in response and go to response immediately
 
-/* !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+/* 
+4) need to check again if this is about error oooor!!
 A message that uses a valid Content-Length is
 incomplete if the size of the message body received (in octets) is less than the value given by
 Content-Length. A response that has neither chunked transfer coding nor Content-Length is
 terminated by closure of the connection and, if the header section was received intact, is
 considered complete unless an error was indicated by the underlying connection   p25*/
 
-/*  a server might reject traffic that it deems abusive or characteristic of a denial-of-service
+/*  
+5) whould we handle? what would be excessive?
+a server might reject traffic that it deems abusive or characteristic of a denial-of-service
 attack, such as an excessive number of open connections from a single client.
  */
 
+ // 6) right handling of connection closure 
  // if close from client, also close header in response & then close connection
  //last activity on recv -> HEADER_TIMEOUT     5–10 seconds BODY_TIMEOUT 10–30 seconds  KEEPALIVE_TIMEOUT  10–60 seconds
 
@@ -276,7 +273,7 @@ void HttpRequest::parseSL(std::string cont)
     start = end + 1;
     http_v = cont.substr(start);
     if (!validateHttpV(http_v))
-        setError(BadRequest, "Invalid HTTP version in Request line");
+        setError(HTTPVersionNotSupported, "Invalid HTTP version in Request line");
 }
 
 void HttpRequest::parseHeader(std::string cont)
@@ -327,7 +324,7 @@ void HttpRequest::parseHeader(std::string cont)
 
 //size chunk in hex, content chunk, ...
 // no trailer header support
-// DO I NEED TO ADD MAX CHUNK SIZE && PARSE CHUNK SIZE? (rfc page 21) 
+// DO I NEED TO ADD MAX CHUNK SIZE && PARSE CHUNK SIZE? (rfc page 21), how is stoul handling 
 // bad request if chunk size line includes ; (anything thats not valid hex)
 ParseState HttpRequest::parseChunkedBody(std::string& buffer)
 {
@@ -364,6 +361,7 @@ ParseState HttpRequest::parseChunkedBody(std::string& buffer)
     }
 }
 
+// need to add checks for payload too large, uri too long, request header fields too large
 ParseState HttpRequest::parseRequest(const char* data, size_t len)
 {
     buffer.append(data, len);
@@ -422,7 +420,6 @@ ParseState HttpRequest::parseRequest(const char* data, size_t len)
                 state = parseChunkedBody(buffer);
             else if (buffer.size() >= content_length) 
             {
-                // should i bad request here if we have more content for security reasons, even if it could be new request?
                 body = buffer.substr(0, content_length);
                 buffer.erase(0, content_length);
                 state = COMPLETE;

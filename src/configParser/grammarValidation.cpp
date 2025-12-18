@@ -108,29 +108,6 @@ bool validateType(Type t, const std::string& value)
     }
 }
 
-/* bool isMethod(const std::string& str)
-{
-    if (str.empty())
-        return false;
-
-    return str == "GET" || str == "POST" || str == "DELETE";
-} */
-
-/* bool isDomainname(const std::string& str)
-{
-    if (str.empty() || str.length() > 253 || str.find('/') != std::string::npos)
-        return false;
-
-    for (char c : str)
-    {
-        if (!std::isalnum(c) && c != '.' && c != '-' && c != ':' && c != '_')
-            return false;
-    }
-    if (str[0] == '.' || str[0] == '-' || str.back() == '.' || str.back() == '-')
-        return false;
-    return true;
-} */
-
 bool isFilename(const std::string& str)
 {
     if (str.empty() || str.find_first_of("/\0") != std::string::npos
@@ -138,13 +115,6 @@ bool isFilename(const std::string& str)
         return false;
     return true;
 }
-
-/* bool isNumber(const std::string& str)
-{
-    if (str.empty())
-        return false;
-    return (str.find_first_not_of("0123456789") == std::string::npos);
-} */
 
 bool isErrorCode(const std::string& str)
 {
@@ -160,52 +130,6 @@ bool isErrorCode(const std::string& str)
         return false;
     }
 }
-
-/* bool isListen(const std::string& str)
-{
-    size_t colon = str.find(':');
-    
-    if (colon != std::string::npos)
-    {
-        std::string ip = str.substr(0, colon);
-        std::string port = str.substr(colon + 1);
-        
-        return isValidIP(ip) && isPort(port);
-    } 
-    else
-        return isPort(str);
-}
-
-bool isValidIP(const std::string& ip)
-{
-    if (ip.empty())
-        return false;
-    
-    int dots = 0;
-    for (char c : ip)
-    {
-        if (c == '.')
-            dots++;
-        else if (!std::isdigit(c))
-            return false;
-    }
-    return dots == 3;
-}
-
-bool isPort(const std::string& str)
-{
-    if (!isNumber(str))
-        return false;
-    try 
-    {
-        int a = std::stoi(str);
-        return a > 1 && a < 65535;
-    }
-    catch (const std::exception& e)
-    {
-        return false;
-    }
-} */
 
 bool isPath(const std::string& str)
 {
