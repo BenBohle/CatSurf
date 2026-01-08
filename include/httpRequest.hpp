@@ -19,7 +19,7 @@ enum ErrorCode
     NotImplemented = 501,
     HTTPVersionNotSupported = 505
 };
-//
+
 enum ParseState {REQUEST_LINE, HEADERS, BODY, COMPLETE, ERROR};
 
 struct parsedRequest
