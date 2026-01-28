@@ -16,5 +16,8 @@ bool isDefaultEP(int status);
 std::string mapStatus(int code);
 std::string httpDate();
 std::string generateErrorPage(int status, std::string info);
+std::string htmlEscape(const std::string& str);
+bool isWithinFSRoot(const std::string& full_path, const std::string& allowed_root);
+std::string str_tolower(std::string s);
 
 #endif

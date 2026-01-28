@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <ctime>
 
 #include "configParser.hpp"
 #include "poller.h"
@@ -22,7 +23,7 @@ struct ClientCon
     int fd;
     uint32_t ip;
     uint16_t port;
-    time_t last_act;
+    time_t last_act = 0;
 
     HttpRequest req;
     const ServerConfig *servConf;
@@ -32,7 +33,7 @@ struct ClientCon
     bool keep_alive;
     size_t sent;
 
-    ClientCon(int fd, uint32_t ip, uint16_t port, time_t last_act): fd(fd), ip(ip), port(port), last_act(last_act), req(), res_ready(false), keep_alive(false), sent(0)  {}
+    ClientCon(int fd, uint32_t ip, uint16_t port): fd(fd), ip(ip), port(port), last_act(std::time(NULL)), req(), servConf(nullptr), res_ready(false), keep_alive(false), sent(0)  {}
 };
 
 struct ListenSocket

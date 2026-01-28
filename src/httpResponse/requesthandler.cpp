@@ -7,12 +7,8 @@
 #include <iostream>
 #include <cstdio>
 
-// is files and error completed????
 // handle files fully (is it fine to check file/directory in routing, should i change logic?
 // check my error_response handling
-// goal: finish static file serving & error pages + error response (go through and also adjust upload)
-// + make plan what to continue (redirect??)
-// automize header generation ???
 //  also request parsing error earlier lead to server stopping, need to check on it
 
 RequestHandler::RequestHandler(const Route &r, const parsedRequest &pr, const ServerConfig &sc, bool keep_alive): r(r), pr(pr), sc(sc) 
@@ -49,9 +45,43 @@ HttpResponse RequestHandler::handleCGI()
     HttpResponse res(ka, pr.http_v);
     return res;
 }
+
+//should i use relativ paths in link?
 HttpResponse RequestHandler::handleDirectoryListing()
 {
+    std::string body;
+    std::string dirName = pr.uri;
+
+    if (dirName.back() != '/')
+        dirName += '/';
+
+    body = "<!DOCTYPE html>\n<html>\n<head>\n<title>Index of " + htmlEscape(dirName)
+            + "</title>\n</head>\n<body>\n<h1>Index of " + htmlEscape(dirName) + "</h1>\n<ul>\n";
+    try
+    {
+        if (dirName != "/") 
+            body += "<li><a href=\"../\">Parent_Directory</a></li>\n";
+        for (const auto & entry : std::filesystem::directory_iterator(r.file_path))
+        {    
+            std::string fileName = entry.path().filename().string();
+            if (fileName[0] == '.')
+                continue;
+            if (entry.is_directory())
+                fileName += "/";
+            body += "<li><a href=\"" + htmlEscape(dirName + fileName) + "\">" + htmlEscape(fileName) + "</a></li>\n";
+        }
+            body += "  </ul>\n</body>\n</html>\r\n";
+    }
+    catch (const std::filesystem::filesystem_error& e)
+    {
+        return handleError(Forbidden);
+    }
+
     HttpResponse res(ka, pr.http_v);
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Content-Length", std::to_string(body.size()));
+    res.setStatus(Ok);
+    res.setBody(body);
     return res;
 }
 
@@ -114,7 +144,12 @@ HttpResponse RequestHandler::deleteFile()
         std::string uploadPath = r.location->upload_path;
         if (uploadPath.back() != '/')
         uploadPath += '/';
-        if (remove((uploadPath + fileName).c_str()) != 0)
+
+        std::string fullPath = uploadPath + fileName;
+        if (!isWithinFSRoot(fullPath, uploadPath))
+            return handleError(Forbidden);
+
+        if (remove(fullPath.c_str()) != 0)
         {
             if (errno == ENOENT)
                 return handleError(NotFound);
@@ -160,12 +195,17 @@ HttpResponse RequestHandler::uploadFile()
     if (r.location->client_max_body_size > 0 && pr.body.size() > r.location->client_max_body_size)
         return handleError(PayloadTooLarge);
 
-    std::string fullPath = r.location->upload_path;
-    if (fullPath.back() != '/')
-        fullPath += '/';
+    std::string uploadPath = r.location->upload_path;
+    if (uploadPath.back() != '/')
+        uploadPath += '/';
 
     std::string fileName = generateFilename();
-    std::ofstream filey(fullPath + fileName, std::ios::binary);
+
+    std::string fullPath = uploadPath + fileName;
+    if (!isWithinFSRoot(fullPath, uploadPath))
+        return handleError(Forbidden);
+
+    std::ofstream filey(uploadPath + fileName, std::ios::binary);
     if (!filey.is_open())
         return handleError(NotFound);
     filey << pr.body;
@@ -197,8 +237,18 @@ HttpResponse RequestHandler::handleError(int status)
 
     if (it != sc.error_page.end())
     {
-        if (!readFile(sc.root + "/" + it->second, body))
-            std::cout << "\n\n\nmiao\n\n\n\n";
+        std::string errorPagePath = sc.root;
+        if (errorPagePath.back() != '/')
+            errorPagePath += '/';
+        errorPagePath += it->second;
+
+        if (isWithinFSRoot(errorPagePath, sc.root))
+        {
+            if (!readFile(errorPagePath, body))
+                body = generateErrorPage(status, mapStatus(status));
+        }
+        else
+            body = generateErrorPage(status, mapStatus(status));
     }
     else
         body = generateErrorPage(status, mapStatus(status));

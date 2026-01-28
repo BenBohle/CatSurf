@@ -19,6 +19,7 @@ struct parsedRequest
     std::string buffer;
     std::string method;
     std::string uri;
+    std::string query;
     std::string http_v;
     std::map<std::string, std::string> headers;
     std::string body;
@@ -33,6 +34,7 @@ class HttpRequest
     std::string buffer;
     std::string method;
     std::string uri;
+    std::string query;
     std::string http_v;
     std::map<std::string, std::string> headers;
     std::string body;
@@ -42,6 +44,12 @@ class HttpRequest
     std::string error_info;
     bool is_complete;
     ParseState state;
+
+    bool validateEncodedURI(const std::string& str);
+    void parseSL(std::string cont);
+    void parseHeader(std::string cont);
+    ParseState parseChunkedBody(std::string& buffer);
+    void setError(ErrorCode type, std::string info);
     
     public:
     //ocf
@@ -51,15 +59,13 @@ class HttpRequest
     ~HttpRequest();
 
     ParseState parseRequest(const char* data, size_t len);
-    void parseSL(std::string cont);
-    void parseHeader(std::string cont);
-    ParseState parseChunkedBody(std::string& buffer);
-    void setError(ErrorCode type, std::string info);
     
     // Getters
     const std::string& getMethod() const;
     const std::string& getUri() const;
     const std::string getHeaderVal(const std::string& key) const;
+    ParseState getState() const;
+    const std::string getBuffer() const;
     parsedRequest getRequest();
 
     //print
@@ -72,8 +78,8 @@ class HttpRequest
     void check_transfer_enc();
 };
 
-bool validateEncodedURI(const std::string& str);
 std::string decodeURI(const std::string& str);
+std::string decodeQuery(const std::string& str);
 bool validateDecodedURI(const std::string& str);
 
 bool validateHttpV(std::string str);

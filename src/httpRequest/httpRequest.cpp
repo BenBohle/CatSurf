@@ -51,7 +51,7 @@ attack, such as an excessive number of open connections from a single client.
 
 HttpRequest::HttpRequest (): content_length(0), error_code(0), chunked(false), is_complete(false), state(REQUEST_LINE) {}
 
-HttpRequest::HttpRequest(const HttpRequest& other): buffer(other.buffer), method(other.method), uri(other.uri), http_v(other.http_v), headers(other.headers), body(other.body), content_length(other.content_length), error_code(other.error_code), chunked(other.chunked), error_info(other.error_info), is_complete(other.is_complete), state(other.state) {}
+HttpRequest::HttpRequest(const HttpRequest& other): buffer(other.buffer), method(other.method), uri(other.uri), query(other.query), http_v(other.http_v), headers(other.headers), body(other.body), content_length(other.content_length), error_code(other.error_code), chunked(other.chunked), error_info(other.error_info), is_complete(other.is_complete), state(other.state) {}
 
 HttpRequest& HttpRequest::operator=(const HttpRequest& other)
 {
@@ -60,6 +60,7 @@ HttpRequest& HttpRequest::operator=(const HttpRequest& other)
         buffer = other.buffer;
         method = other.method;
         uri = other.uri;
+        query = other.query;
         http_v = other.http_v;
         headers = other.headers;
         body = other.body;
@@ -84,6 +85,16 @@ const std::string& HttpRequest::getMethod() const
     return method;
 }
 
+ParseState HttpRequest::getState() const
+{
+    return state;
+}
+
+const std::string HttpRequest::getBuffer() const
+{
+    return buffer;
+}
+
 const std::string& HttpRequest::getUri() const
 {
     return uri;
@@ -103,6 +114,7 @@ parsedRequest HttpRequest::getRequest()
     req.buffer = buffer;
     req.method = method;
     req.uri = uri;
+    req.query = query;
     req.http_v = http_v;
     req.headers = headers;
     req.body = body;
@@ -115,13 +127,6 @@ parsedRequest HttpRequest::getRequest()
 /***********************************************************/
 /*                          HELPER                         */
 /***********************************************************/
-
-std::string str_tolower(std::string s)
-{
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c) { return std::tolower(c); });
-    return s;
-}
 
 void HttpRequest::printRequest()
 {
@@ -170,6 +175,7 @@ void HttpRequest::clear()
 {
     method.clear();
     uri.clear();
+    query.clear();
     http_v.clear();
     headers.clear();
     body.clear();
@@ -185,16 +191,16 @@ void HttpRequest::clear()
 /*                      VALIDATION                         */
 /***********************************************************/
 
-// maybe no \\?
-
-bool validateEncodedURI(const std::string& str)
+// [] in case of ipv6
+// what about # 
+bool HttpRequest::validateEncodedURI(const std::string& str)
 {
     if (str.empty() || str.size() > MAX_URI)
         return false;
     if (str[0] != '/')
         return false;
 
-    std::string allowed = "-._~/?#&=:@!$()*+,;%";
+    std::string allowed = "-._~/&=:@!$()*+,;%?";
     for (size_t i = 0; i < str.size(); i++)
     {
         if (!isalnum(static_cast<unsigned char>(str[i])) && allowed.find(str[i]) == std::string::npos)
@@ -207,8 +213,38 @@ bool validateEncodedURI(const std::string& str)
             i += 2;
         }
     } 
+    auto it = str.find('?');
+    uri = str.substr(0, it);
+    if (it != std::string::npos)
+        query = str.substr(it + 1);
     return true;
 }
+
+std::string decodeQuery(const std::string& str)
+{
+    std::string res;
+    res.reserve(str.size());
+
+    for (size_t i = 0; i < str.size(); ++i)
+    {
+        if (str[i] == '%')
+        {
+            char hex[3] = { str[i + 1], str[i + 2], '\0' };
+            unsigned char c = static_cast<unsigned char>(std::strtol(hex, NULL, 16));
+            if (c == '\0')
+                throw std::runtime_error("null byte");
+
+            res += c;
+            i += 2;
+        }
+        else if (str[i] == '+')
+            res += ' ';
+        else
+            res += str[i];
+    }
+    return res;
+}
+
 
 std::string decodeURI(const std::string& str)
 {
@@ -220,9 +256,10 @@ std::string decodeURI(const std::string& str)
         if (str[i] == '%')
         {
             char hex[3] = {str[i + 1], str[i + 2], '\0'};
-            char c = static_cast<char>(std::strtol(hex, NULL, 16));
-            if (c == '\0')
-                throw std::runtime_error("null byte");
+            unsigned char c = static_cast<unsigned char>(std::strtol(hex, NULL, 16));
+            if (c < 0x20 || c == 0x7F || c == '\\')
+                throw std::runtime_error("invalid decoded char");
+
             res += c;
             i += 2;
         }
@@ -231,20 +268,6 @@ std::string decodeURI(const std::string& str)
     }
     return res;
 }
-
-bool validateDecodedURI(const std::string& str)
-{
-    for (size_t i = 0; i < str.size(); ++i)
-    {
-        unsigned char c = static_cast<unsigned char>(str[i]);
-        if (c < 0x20 || c == 0x7F)
-            return false;
-        if (c == '\\')
-            return false;
-    }
-    return true;
-}
-
 
 bool validateHttpV(std::string str)
 {
@@ -312,13 +335,15 @@ void HttpRequest::parseSL(std::string cont)
     try
     {
         uri = decodeURI(uri);
+        if (!query.empty())
+            query = decodeQuery(query);
     }
     catch (std::exception &e)
     {
         setError(BadRequest, "Invalid URI in Request line");
     }
-    if (!validateDecodedURI(uri))
-        setError(BadRequest, "Invalid URI in Request line");
+/*     if (!validateDecodedURI(uri))
+        setError(BadRequest, "Invalid URI in Request line"); */
     start = end + 1;
     http_v = cont.substr(start);
     if (!validateHttpV(http_v))
@@ -438,7 +463,7 @@ ParseState HttpRequest::parseChunkedBody(std::string& buffer)
     }
 }
 
-//decided to reject GET & DELETE wqíth body 
+// decided to reject GET & DELETE with body
 // need to add checks for payload too large, uri too long, request header fields too large
 ParseState HttpRequest::parseRequest(const char* data, size_t len)
 {

@@ -1,5 +1,4 @@
 
-#include <ctime>
 #include <iostream>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -27,9 +26,11 @@ void Server::init()
             listen_sockets.emplace_back(fd, lp.ip, lp.port);
             listen_fd_set.insert(fd);
             
+            #ifdef DEBUG
             std::cout << "\nListening on http://"
                         << inet_ntoa(*(struct in_addr*)&lp.ip)
                         << ":" << lp.port << "\n";
+            #endif
         }
     }
 }
@@ -56,7 +57,6 @@ void Server::run()
         check_timeouts(); 
     }
 }
-
 
 //update(fd, read, write) -> event::update(fd, true, true);
 void Server::client_write(int client_fd)
@@ -91,6 +91,7 @@ void Server::client_write(int client_fd)
                 close_client(conn.fd);
                 return;
             }
+            std::cout << "\nkeep-alive\n" << std::endl;
             conn.req.clear();
             conn.last_act = std::time(nullptr);
             poller->update(conn.fd, true, false);
@@ -123,9 +124,10 @@ void Server::new_connection(int listen_fd)
         
         // Store client with connection info
         //check dıf wıth requests
-        clients.emplace(client_fd, ClientCon(client_fd, ls->ip, ls->port, time(nullptr)));
-        
+        clients.emplace(client_fd, ClientCon(client_fd, ls->ip, ls->port));
+        #ifdef DEBUG
         std::cout << "\nNew client " << client_fd << " connected to " << ls->port << "\n";
+        #endif
     }
 }
 
@@ -147,29 +149,38 @@ void Server::read_client(int client_fd)
         close_client(client_fd);
         return;
     }
-    
-    ParseState state;
-    state = conn.req.parseRequest(buffer.data(), bytes);
-    if (state == COMPLETE) 
+
+    while (true)
     {
-        conn.req.printRequest();
-        std::string host = conn.req.getHeaderVal("Host");
-        conn.servConf = findServer(conn.ip, conn.port, host);
+        ParseState state = conn.req.parseRequest(buffer.data(), bytes);
+        bytes = 0;
         
-        if (!conn.servConf)
+        if (state == COMPLETE)
         {
-            fallback_error(conn, 500);
+            #ifdef DEBUG
+            conn.req.printRequest();
+            #endif
+
+            std::string host = conn.req.getHeaderVal("host");
+            conn.servConf = findServer(conn.ip, conn.port, host);
+            if (!conn.servConf)
+            {
+                fallback_error(conn, 500);
+                return;
+            }
+            process_request(conn);
+            conn.req.clear();
+            continue;
+        }
+        if (state == ERROR)
+        {
+            int status = conn.req.getRequest().error_code;
+            if (status <= 0)
+                status = 400;
+            fallback_error(conn, status);
             return;
         }
-        process_request(conn);
-    }
-    else if (state == ERROR)
-    {
-        int status = conn.req.getRequest().error_code;
-        if (status <= 0)
-            status = 400;
-        fallback_error(conn, status);
-        return;
+        break;
     }
 }
 
@@ -242,11 +253,11 @@ void Server::process_request(ClientCon& conn)
     Route routy = r.route();
     parsedRequest req = conn.req.getRequest();
 
-    std::string connection = conn.req.getHeaderVal("Connection");
+    std::string connection = str_tolower(conn.req.getHeaderVal("connection"));
     if (req.http_v == "HTTP/1.1")
-        conn.keep_alive = (connection != "close");
+        conn.keep_alive = connection != "close";
     else if (req.http_v == "HTTP/1.0")
-        conn.keep_alive = (connection == "keep-alive");
+        conn.keep_alive = connection == "keep-alive";
 
     RequestHandler handler(routy, req, *conn.servConf, conn.keep_alive);
     HttpResponse res = handler.handle();
@@ -293,15 +304,15 @@ void Server::check_timeouts()
     
     for (auto& [fd, conn] : clients)
     {
-        int timeout;
+        int timeout = 60;
         if (conn.servConf && conn.servConf->timeout > 0)
             timeout = conn.servConf->timeout;
-        else
-            timeout = 60;
 
         if (now - conn.last_act > timeout)
         {
+            #ifdef DEBUG
             std::cout << "\nClient " << fd << " timed out\n";
+            #endif
             conn.req = HttpRequest();
             to_close.push_back(fd);
         }
@@ -316,5 +327,7 @@ void Server::close_client(int client_fd)
     poller->remove(client_fd);
     clients.erase(client_fd);
     event::close_socket(client_fd);
+    #ifdef DEBUG
     std::cout << "\nClient " << client_fd << " disconnected\n";
+    #endif
 }

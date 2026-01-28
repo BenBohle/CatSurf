@@ -2,6 +2,7 @@
 #include "../../include/router.hpp"
 #include "../../include/httpRequest.hpp"
 #include "../../include/server.hpp"
+#include "../../include/utils.hpp"
 #include <iostream>
 #include <sys/stat.h>
 #include <algorithm>
@@ -234,6 +235,9 @@ std::string Router::mapURI(const LocationConfig *loc, const std::string &uri)
 
     std::string full_path = root + relative_path;
     if (full_path.size() < root.size() || full_path.compare(0, root.size(), root) != 0)
+        return "";
+
+    if (!isWithinFSRoot(full_path, root))
         return "";
     
     return full_path;

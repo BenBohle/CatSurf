@@ -9,6 +9,10 @@ NAME		= webserv
 CXX			= c++
 CXXFLAGS	= -Wall -Wextra -Werror -std=c++17
 INCLUDES	= -I./include
+
+ifdef DEBUG
+CXXFLAGS += -DDEBUG
+endif
 # ================================= SOURCES ================================== #
 SRC_DIR		= src
 OBJ_DIR		= obj

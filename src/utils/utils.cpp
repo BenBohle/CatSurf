@@ -7,6 +7,56 @@
 #include <limits.h>
 #include <filesystem>
 #include <ctime>
+#include <algorithm>
+
+std::string str_tolower(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    return s;
+}
+
+bool isWithinFSRoot(const std::string& full_path, const std::string& allowed_root)
+{
+    try 
+    {
+        std::filesystem::path wc_root = std::filesystem::weakly_canonical(allowed_root);
+        std::filesystem::path wc_full = std::filesystem::weakly_canonical(full_path);
+
+        auto root_str = wc_root.string();
+        auto full_str = wc_full.string();
+
+        if (full_str == root_str)
+            return true;
+
+        if (!root_str.empty() && root_str.back() != '/')
+            root_str += '/';
+
+        return full_str.compare(0, root_str.size(), root_str) == 0;
+    }
+    catch (const std::filesystem::filesystem_error&)
+    {
+        return false;
+    }
+}
+
+std::string htmlEscape(const std::string& str)
+{
+    std::string escaped;
+    for (char c : str)
+    {
+        switch(c)
+        {
+            case '<': escaped += "&lt;"; break;
+            case '>': escaped += "&gt;"; break;
+            case '&': escaped += "&amp;"; break;
+            case '"': escaped += "&quot;"; break;
+            case '\'': escaped += "&#39;"; break;
+            default: escaped += c;
+        }
+    }
+    return escaped;
+}
 
 std::string httpDate()
 {
