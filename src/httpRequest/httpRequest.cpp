@@ -301,6 +301,13 @@ void HttpRequest::check_host()
     if (!getHeaderVal("host").empty())
     {
         std::string val = getHeaderVal("host");
+        auto ddot = val.find(':');
+        if (ddot != std::string::npos)
+        {
+            val.erase(ddot);
+            headers["host"] = val;
+        }
+            
         if (!isListen(val) && !isDomainname(val) && !isIPv6Host(val))
             setError(BadRequest, "Invalid host value");
     }
@@ -342,8 +349,6 @@ void HttpRequest::parseSL(std::string cont)
     {
         setError(BadRequest, "Invalid URI in Request line");
     }
-/*     if (!validateDecodedURI(uri))
-        setError(BadRequest, "Invalid URI in Request line"); */
     start = end + 1;
     http_v = cont.substr(start);
     if (!validateHttpV(http_v))
@@ -463,7 +468,10 @@ ParseState HttpRequest::parseChunkedBody(std::string& buffer)
     }
 }
 
-// decided to reject GET & DELETE with body
+// decided not to reject GET & DELETE with body
+/*                     if (method != "POST")
+                        setError(BadRequest, "method shouldn't contain Body");
+                    else */
 // need to add checks for payload too large, uri too long, request header fields too large
 ParseState HttpRequest::parseRequest(const char* data, size_t len)
 {
@@ -510,12 +518,7 @@ ParseState HttpRequest::parseRequest(const char* data, size_t len)
                 if (content_length == 0 && !chunked)
                     state = COMPLETE;
                 else
-                {
-                    if (method != "POST")
-                        setError(BadRequest, "method shouldn't contain Body");
-                    else
                         state = BODY;
-                }
             }
             catch (std::exception &e)
             {

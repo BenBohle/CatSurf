@@ -23,6 +23,13 @@ RequestHandler::~RequestHandler() {}
 
 HttpResponse RequestHandler::handle()
 {
+    size_t cmb;
+    if (r.location)
+        cmb = r.location->client_max_body_size;
+    else 
+        cmb = sc.client_max_body_size;
+    if (cmb > 0 && pr.body.size() > cmb)
+        return handleError(PayloadTooLarge);
     switch (r.type)
     {
         case RED:
@@ -192,8 +199,6 @@ HttpResponse RequestHandler::uploadFile()
         return handleError(MethodNotAllowed);
     if (pr.body.empty())
         return handleError(BadRequest);
-    if (r.location->client_max_body_size > 0 && pr.body.size() > r.location->client_max_body_size)
-        return handleError(PayloadTooLarge);
 
     std::string uploadPath = r.location->upload_path;
     if (uploadPath.back() != '/')
@@ -213,7 +218,10 @@ HttpResponse RequestHandler::uploadFile()
 
     HttpResponse res(ka, pr.http_v);
     res.setStatus(Created);
-    res.setHeader("Location", "/needUplaodPath/" + fileName);
+    std::string fullTargetPath = r.file_path;
+    if (fullTargetPath.back() != '/')
+        fullTargetPath += '/' + fileName;
+    res.setHeader("Location", fullTargetPath);
     return res;
 }
 
@@ -252,6 +260,22 @@ HttpResponse RequestHandler::handleError(int status)
     }
     else
         body = generateErrorPage(status, mapStatus(status));
+    if (status == MethodNotAllowed)
+    {
+        std::string allowedM;
+        if (r.location && !r.location->allow_methods.empty())
+        {
+            for (size_t i = 0; i < r.location->allow_methods.size(); ++i)
+            {
+                allowedM += r.location->allow_methods[i];
+                if (i < r.location->allow_methods.size() - 1)
+                    allowedM += ", ";
+            }
+        }
+        else 
+            allowedM = "GET, POST, DELETE";
+        res.setHeader("Allow", allowedM);
+    }
 
     res.setHeader("Content-Type", "text/html");
     res.setHeader("Content-Length", std::to_string(body.size()));
@@ -275,7 +299,8 @@ bool readFile(const std::string& filepath, std::string& body)
 HttpResponse RequestHandler::handleRedirect()
 {
     HttpResponse res(ka, pr.http_v);
-    
+    if (r.status != 301 && r.status != 302 && r.status != 303 && r.status != 307 && r.status != 308)
+        return handleError(r.status);
     res.setStatus(r.status);
     res.setHeader("Location", r.redirect_url);
 

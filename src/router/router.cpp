@@ -87,7 +87,8 @@ Route Router::route()
 	{
 		result.type = RED;
 		result.status = std::stoi(loc->return_[0]);
-        result.redirect_url = loc->return_[1];
+        if (loc->return_.size() > 1)
+            result.redirect_url = loc->return_[1];
 	}
     else if (loc && std::find(loc->allow_methods.begin(), loc->allow_methods.end(),
                 req.method) == loc->allow_methods.end())
@@ -98,6 +99,7 @@ Route Router::route()
     else if (loc && (req.method != "GET") && !loc->upload_path.empty())
     {
         result.type = UPLOAD;
+        result.file_path = normalizePath(req.uri);
         return result;
     }
 

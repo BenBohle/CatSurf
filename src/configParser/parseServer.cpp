@@ -5,22 +5,6 @@
 #include <stdexcept>
 #include <arpa/inet.h>
 
-void ConfigParser::setServerDefaults(ServerConfig &serv)
-{
-    if (serv.root.empty())
-        serv.root = resolveConfigPath("www");
-    if (serv.server_name.empty())
-        serv.server_name = {"_"};
-    if (serv.index.empty())
-        serv.index = {"index.html"};
-    if (serv.error_page.empty())
-        serv.error_page.insert({400, "error_pages/400.html"});
-    if (serv.client_max_body_size == 0)
-        serv.client_max_body_size = 1024 * 1024;
-    if (serv.timeout == 0)
-        serv.timeout = 60;
-}
-
 void ConfigParser::setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv)
 {
     if (!validateType(t, value))
@@ -50,11 +34,18 @@ void ConfigParser::setServerDirective(const std::string& key, const std::vector<
     if (!validateType(t, value))
         throw std::runtime_error("Invalid value for directive: " + key);
     if (key == "index")
+    {
+        serv.index.clear();
         serv.index = value;
+    }
     else if (key == "server_name")
+    {
+        serv.server_name.clear();
         serv.server_name = value;
+    }
     else if (key == "error_page")
     {
+        serv.error_page.clear();
         const std::string& path = value.back();
         for (size_t i = 0; i < value.size() - 1; i++)
         {
@@ -109,8 +100,6 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
                 const std::string& value = tokens[i + 1];
                 if (i + 2 >= tokens.size() || tokens[i + 2] != ";")
                     throw std::runtime_error("Syntax error: Missing ';'");
-                if (!validateType(t, value))
-                    throw std::runtime_error("Invalid type for directive: " + key);
                 setServerDirective(key, value, t, serv);
                 i += 3;
             }
@@ -124,8 +113,8 @@ void ConfigParser::parseServer(const std::vector<std::string>& tokens, size_t& i
     i++;
     if (serv.listen_port.empty())
         throw std::runtime_error("Missing required 'listen' directive in server block");
-    setServerDefaults(serv);
-    setLocationDefaults(serv);
+    if (serv.root.empty())
+        throw std::runtime_error("Missing required root for server");
     if (!isDirectory(serv.root))
         throw std::runtime_error("Server root must be a directory");
 

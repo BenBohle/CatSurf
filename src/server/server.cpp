@@ -22,15 +22,28 @@ void Server::init()
     {
         for (const auto& lp : server.listen_port)
         {
-            int fd = create_and_listen(lp);
-            listen_sockets.emplace_back(fd, lp.ip, lp.port);
-            listen_fd_set.insert(fd);
-            
-            #ifdef DEBUG
-            std::cout << "\nListening on http://"
+            int fd = -1;
+            for (const auto& ls : listen_sockets)
+            {
+                if (ls.ip == lp.ip && ls.port == lp.port)
+                {
+                    fd = ls.fd;
+                    break;
+                }
+            }
+            if (fd < 0)
+            {
+                fd = create_and_listen(lp);
+                if (fd < 0)
+                    throw std::runtime_error("Failed to bind socket");
+                listen_sockets.emplace_back(fd, lp.ip, lp.port);
+                #ifdef DEBUG
+                std::cout << "\nListening on http://"
                         << inet_ntoa(*(struct in_addr*)&lp.ip)
                         << ":" << lp.port << "\n";
-            #endif
+                #endif
+            }
+            listen_fd_set.insert(fd);
         }
     }
 }
@@ -91,7 +104,6 @@ void Server::client_write(int client_fd)
                 close_client(conn.fd);
                 return;
             }
-            std::cout << "\nkeep-alive\n" << std::endl;
             conn.req.clear();
             conn.last_act = std::time(nullptr);
             poller->update(conn.fd, true, false);
@@ -122,8 +134,6 @@ void Server::new_connection(int listen_fd)
         event::set_non_blocking(client_fd);
         poller->add(client_fd, true, false);
         
-        // Store client with connection info
-        //check dıf wıth requests
         clients.emplace(client_fd, ClientCon(client_fd, ls->ip, ls->port));
         #ifdef DEBUG
         std::cout << "\nNew client " << client_fd << " connected to " << ls->port << "\n";
@@ -206,34 +216,31 @@ void Server::fallback_error(ClientCon& conn, int status)
 const ServerConfig* Server::findServer(uint32_t ip, uint16_t port, const std::string& host_header)
 {
 	const std::vector<ServerConfig>& servers = config.getServers();
+    const ServerConfig *firstMatch = nullptr;
 
     for (const auto& server : servers)
   	{
-    	for (const auto& lp : server.listen_port)
+        for (const auto& lp : server.listen_port)
     	{
       		if (lp.ip == ip && lp.port == port)
       		{
-        		if (!host_header.empty())
+        		if (!firstMatch)
+                    firstMatch = &server; 
+                if (!host_header.empty())
         		{
           			for (const auto& name : server.server_name)
           			{
-            			if (name == host_header || name == "_")
-              				return &server;
+                        if (name == str_tolower(host_header) || name == "_")
+                            return &server;
           			}
         		}
-        		else
-          			return &server;
       		}
     	}
   	}
-  	for (const auto& server : servers)
-  	{
-    	for (const auto& lp : server.listen_port)
-    	{
-      		if (lp.port == port)
-        	return &server;
-    	}
-  	}
+    if (firstMatch)
+    {
+        return firstMatch;
+    }
   	return nullptr;
 }
 

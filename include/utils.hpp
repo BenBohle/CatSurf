@@ -8,7 +8,7 @@ bool isListen(const std::string& str);
 bool isValidIP(const std::string& ip);
 bool isPort(const std::string& str);
 bool isMethod(const std::string& str);
-bool isDomainname(const std::string& str);
+bool isDomainname(std::string str);
 bool isIPv6Host(const std::string& host);
 bool isDirectory(const std::string& path);
 std::string resolveConfigPath(const std::string& path);

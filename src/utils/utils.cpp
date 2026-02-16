@@ -206,19 +206,33 @@ bool isMethod(const std::string& str)
     return str == "GET" || str == "POST" || str == "DELETE";
 }
 
-// need to check again if it works for config & request now
-bool isDomainname(const std::string& str)
+// rn checking in config and server fails, we can switch to only host header check also
+bool isDomainname(std::string str)
 {
-    if (str.empty() || str.length() > 253 || str.find('/') != std::string::npos)
+    if (str.empty() || str.length() > 253 || str.front() == '.' || str.back() == '.')
         return false;
-
-    for (char c : str)
+    while (!str.empty())
     {
-        if (!std::isalnum(c) && c != '.' && c != '-'/*  && c != ':' && c != '_' */)
+        auto dot = str.find('.');
+        std::string label;
+        if (dot != std::string::npos)
+        {
+            label = str.substr(0, dot);
+            str.erase(0, dot + 1);
+        }
+        else
+        {
+            label = str;
+            str.erase();
+        }
+        if (label.size() > 63 || label.size() == 0 || !std::isalnum(label[0]) || !std::isalnum(label.back()))
             return false;
+        for (char c : label)
+        {
+            if (!std::isalnum(c) && c != '-')
+            return false;
+        }
     }
-    if (str[0] == '.' || str[0] == '-' || str.back() == '.' || str.back() == '-')
-        return false;
     return true;
 }
 

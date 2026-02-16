@@ -134,6 +134,8 @@ void Server::read_client(int client_fd)
 const ServerConfig* Server::findServer(uint32_t ip, uint16_t port, const std::string& host_header)
 {
 	const std::vector<ServerConfig>& servers = config.getServers();
+    auto it = host_header.find(':');
+    host_substr = host_header.substr(0, it);
 
     for (const auto& server : servers)
   	{
@@ -145,7 +147,7 @@ const ServerConfig* Server::findServer(uint32_t ip, uint16_t port, const std::st
         		{
           			for (const auto& name : server.server_name)
           			{
-            			if (name == host_header || name == "_")
+            			if (name == host_header || name == "_" || host_substr)
               				return &server;
           			}
         		}

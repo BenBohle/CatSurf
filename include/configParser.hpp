@@ -40,13 +40,13 @@ struct ListenPort
 
 struct ServerConfig
 {
-    std::vector<std::string> server_name;
+    std::vector<std::string> server_name = {"_"};
     std::vector<ListenPort> listen_port;
     std::string root;
-    int timeout;
-    size_t client_max_body_size = 0;
-    std::vector<std::string> index;
-    std::map<int, std::string> error_page;
+    int timeout = 60;
+    size_t client_max_body_size = 1024 * 1024;
+    std::vector<std::string> index = {"index.html"};
+    std::map<int, std::string> error_page = {{400, "error_pages/400.html"}};
     std::vector<LocationConfig> locations;
 };
 
@@ -107,7 +107,7 @@ class ConfigParser
     // setter default
     void setDefaultGC();
     void setServerDefaults(ServerConfig &serv);
-    void setLocationDefaults(ServerConfig& serv);
+    void setLocationDefaults(LocationConfig &conf, ServerConfig& serv);
     // setter
     void setServerDirective(const std::string& key, const std::string& value, Type t, ServerConfig& serv);
     void setServerDirective(const std::string& key, const std::vector<std::string>& value, Type t, ServerConfig& serv);
@@ -147,7 +147,6 @@ bool isNumber(const std::string& str);
 bool isPath(const std::string& str);
 bool isBoolean(const std::string& str);
 bool isFilename(const std::string& str);
-bool isDomainname(const std::string& str);
 bool isMethod(const std::string& str);
 bool isListen(const std::string &str);
 bool isPort(const std::string& str);

@@ -1,6 +1,8 @@
 #ifndef STATUSCODES_HPP
 #define STATUSCODES_HPP
 
+// optional add: 408 Reruest timeout, 411 length required, 414 uri too long
+// should i change too content too large (newer rfc)
 enum ErrorCode
 {
     BadRequest = 400,
