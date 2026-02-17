@@ -259,22 +259,12 @@ const LocationConfig* Router::findLocation(const std::string& uri) const
 	if (server.locations.empty())
     	return nullptr;
   
-  	const LocationConfig* best_match = nullptr;
-  	size_t best_match_len = 0;
-  
   	for (const auto& loc : server.locations)
   	{
-    	if (uri.find(loc.path) == 0)
-    	{
-      		size_t match_len = loc.path.length();
-      		if (match_len > best_match_len)
-      		{
-        		best_match = &loc;
-        		best_match_len = match_len;
-      		}
-    	}
+    	if (uri == loc.path)
+            return &loc;
   	}
-  	return best_match;
+  	return nullptr;
 }
 
 void Router::finalizeCgiRoute(const LocationConfig* loc,
