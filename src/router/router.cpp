@@ -253,18 +253,43 @@ std::string Router::mapURI(const LocationConfig *loc, const std::string &uri)
     return full_path;
 }
 
-// match on bestmatch or exactmatch?
+// Best match: exact match or prefix match with / boundary
 const LocationConfig* Router::findLocation(const std::string& uri) const
 {
 	if (server.locations.empty())
     	return nullptr;
   
-  	for (const auto& loc : server.locations)
-  	{
-    	if (uri == loc.path)
-            return &loc;
-  	}
-  	return nullptr;
+  	const LocationConfig* best_match = nullptr;
+    size_t best_match_len = 0;
+  
+    for (const auto& loc : server.locations)
+    {
+        // Exakt match
+        if (uri == loc.path)
+        {
+            size_t match_len = loc.path.length();
+            if (match_len > best_match_len)
+            {
+                best_match = &loc;
+                best_match_len = match_len;
+            }
+        }
+        // Prefix match with / boundary (z.b., /error_pages matches or cgi locations)
+        else if (uri.find(loc.path) == 0 && uri.length() > loc.path.length())
+        {
+            // Next character after match must be '/'
+            if (uri[loc.path.length()] == '/')
+            {
+                size_t match_len = loc.path.length();
+                if (match_len > best_match_len)
+                {
+                    best_match = &loc;
+                    best_match_len = match_len;
+                }
+            }
+        }
+    }
+    return best_match;
 }
 
 void Router::finalizeCgiRoute(const LocationConfig* loc,
