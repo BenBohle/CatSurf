@@ -143,7 +143,7 @@ std::string getMime(std::string path)
 
     if (mimeTypes.empty())
     {
-        mimeTypes["html"] = "html""text/html";
+        mimeTypes["html"] = "text/html";
         mimeTypes["htm"]  = "text/html";
         mimeTypes["css"]  = "text/css";
         mimeTypes["js"]   = "application/javascript";
