@@ -7,9 +7,6 @@
 #include <iostream>
 #include <cstdio>
 
-// handle files fully (is it fine to check file/directory in routing, should i change logic?
-// check my error_response handling
-//  also request parsing error earlier lead to server stopping, need to check on it
 
 RequestHandler::RequestHandler(const Route &r, const parsedRequest &pr, const ServerConfig &sc, bool keep_alive): r(r), pr(pr), sc(sc) 
 {
@@ -92,13 +89,61 @@ HttpResponse RequestHandler::handleDirectoryListing()
     return res;
 }
 
+std::string getExtUri(std::string uri)
+{
+
+    auto dot = uri.find_last_of(".");
+    if (dot != std::string::npos)
+        return uri.substr(dot);
+    else
+        return ".bin";
+}
+
+std::string getMimeExt(std::string mime)
+{
+    static std::map<std::string, std::string> mimeExt;
+
+    if (mimeExt.empty())
+    {
+        mimeExt["text/html"]                        = ".html";
+        mimeExt["text/css"]                         = ".css";
+        mimeExt["application/javascript"]           = ".js";
+        mimeExt["text/plain"]                       = ".txt";
+        mimeExt["application/json"]                 = ".json";
+        mimeExt["application/xml"]                  = ".xml";
+        mimeExt["image/png"]                        = ".png";
+        mimeExt["image/jpeg"]                       = ".jpg";
+        mimeExt["image/jpg"]                        = ".jpg";
+        mimeExt["image/gif"]                        = ".gif";
+        mimeExt["image/x-icon"]                     = ".ico";
+        mimeExt["image/svg+xml"]                    = ".svg";
+        mimeExt["application/pdf"]                  = ".pdf";
+        mimeExt["application/msword"]               = ".doc";
+        mimeExt["application/vnd.ms-excel"]         = ".xls";
+        mimeExt["application/vnd.ms-powerpoint"]    = ".ppt";
+        mimeExt["audio/mpeg"]                       = ".mp3";
+        mimeExt["audio/mp3"]                        = ".mp3";
+        mimeExt["audio/wav"]                        = ".wav";
+        mimeExt["audio/mp4"]                        = ".m4a";
+        mimeExt["video/mp4"]                        = ".mp4";
+        mimeExt["video/mpeg"]                       = ".mpeg";
+        mimeExt["video/quicktime"]                  = ".mov";
+        mimeExt["text/markdown"]                    = ".md";
+    }
+    auto it = mimeExt.find(mime);
+    if (it != mimeExt.end())
+        return it->second;
+    else
+        return ".bin";
+}
+
 std::string getMime(std::string path)
 {
     static std::map<std::string, std::string> mimeTypes;
 
     if (mimeTypes.empty())
     {
-        mimeTypes["html"] = "text/html";
+        mimeTypes["html"] = "html""text/html";
         mimeTypes["htm"]  = "text/html";
         mimeTypes["css"]  = "text/css";
         mimeTypes["js"]   = "application/javascript";
@@ -111,6 +156,9 @@ std::string getMime(std::string path)
         mimeTypes["svg"]  = "image/svg+xml";
         mimeTypes["json"] = "application/json";
         mimeTypes["pdf"]  = "application/pdf";
+        mimeTypes["mpeg"] = "audio/mpeg";
+        mimeTypes["wav"]  = "audio/wav";
+        mimeTypes["m4a"]  = "audio/mp4";
     }
 
     size_t dot = path.find_last_of('.');
@@ -119,7 +167,7 @@ std::string getMime(std::string path)
     std::string key = path.substr(dot + 1);
     std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
-    std::map<std::string, std::string>::iterator it = mimeTypes.find(key);
+    auto it = mimeTypes.find(key);
     if (it != mimeTypes.end())
         return it->second;
 
@@ -134,7 +182,6 @@ std::string extractFile(std::string filePath)
     return "";
 }
 
-//adjust in routing & in requesthandler
 HttpResponse RequestHandler::deleteFile()
 {
     if (!r.location)
@@ -206,6 +253,11 @@ HttpResponse RequestHandler::uploadFile()
 
     std::string fileName = generateFilename();
 
+    if (pr.content_type.find("multipart/form-data") != std::string::npos)
+        fileName += getMimeExt(pr.mp.content_type);
+    else
+        fileName += getExtUri(r.file_path);
+
     std::string fullPath = uploadPath + fileName;
     if (!isWithinFSRoot(fullPath, uploadPath))
         return handleError(Forbidden);
@@ -213,7 +265,8 @@ HttpResponse RequestHandler::uploadFile()
     std::ofstream filey(uploadPath + fileName, std::ios::binary);
     if (!filey.is_open())
         return handleError(NotFound);
-    filey << pr.body;
+
+    filey.write(pr.body.data(), pr.body.size()); //mao
     filey.close();
 
     HttpResponse res(ka, pr.http_v);

@@ -30,5 +30,7 @@ class RequestHandler
 };
 
 std::string getMime(std::string path);
+std::string getExtUri(std::string uri);
+std::string getMimeExt(std::string mime);
 bool readFile(const std::string& filepath, std::string& body);
 #endif
