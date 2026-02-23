@@ -83,6 +83,12 @@ Route Router::route()
 {    
     const LocationConfig *loc = findLocation(req.uri);
     result.location = loc;
+    if (!loc && req.method != "GET")
+	{
+        result.type = ERR;
+		result.status = MethodNotAllowed;
+        return result;
+	}
     if (loc && !loc->return_.empty())
 	{
 		result.type = RED;
