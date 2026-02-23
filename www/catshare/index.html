@@ -775,13 +775,14 @@
 
         fetch(UPLOAD_URL, {
           method: "POST",
-          body: formData
+          body: formData,
+          cache: "no-store"
         })
         .then(function(response) {
-          if (!response.ok) {
-            throw new Error("Upload failed");
+          if (response.status >= 200 && response.status < 400) {
+            return response.text();
           }
-          return response.text();
+          throw new Error("Upload failed with status: " + response.status);
         })
         .then(function() {
           setCatState("happy");
@@ -799,7 +800,8 @@
 
       function loadFilesFromServer() {
         fetch(LIST_URL, {
-          method: "GET"
+          method: "GET",
+          cache: "no-store"
         })
         .then(function(response) {
           if (!response.ok) {
