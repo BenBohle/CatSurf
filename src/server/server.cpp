@@ -447,7 +447,6 @@ void Server::process_request(ClientCon& conn)
 
     Router r(*conn.servConf, req);
     Route routy = r.route();
-    std::cout << routy.type << std::endl;
 
     if (routy.type == FILES && req.method == "GET")
     {
