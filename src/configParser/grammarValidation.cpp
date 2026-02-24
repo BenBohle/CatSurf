@@ -33,6 +33,7 @@ const std::map<Block, std::map<std::string, Type>> ConfigParser::grammar =
         {
             {"root", PATH},
             {"autoindex", BOOLEAN},
+            {"botdetect", YESNO},
             {"index", FILENAME},
             {"allow_methods", METH},
             {"upload_path", PATH},
@@ -112,6 +113,8 @@ bool validateType(Type t, const std::string& value)
             return isSize(value);
         case TIME:
             return isTime(value);
+        case YESNO:
+            return isYesNo(value);
         default:
             return false;
     }
@@ -226,6 +229,11 @@ size_t parseSize(const std::string& str)
 bool isBoolean(const std::string& str)
 {
     return str == "on" || str == "off";
+}
+
+bool isYesNo(const std::string& str)
+{
+    return str == "yes" || str == "no";
 }
 
 bool isTime(const std::string& str)
