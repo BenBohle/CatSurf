@@ -504,6 +504,11 @@ void CgiManager::handleEvent(int fd, bool readable, bool writable)
                 proc.stdin_closed = true;
             }
         }
+        else if (n == 0)
+        {
+            // No progress for this writable notification ----> retry on next event.
+            return;
+        }
         else if (n < 0)
         {
             poller.remove(proc.stdin_fd);

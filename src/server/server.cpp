@@ -1121,7 +1121,11 @@ void Server::sigchld_handler(int)
         return;
     char byte = 1;
     ssize_t r = write(active_instance->signal_pipe[1], &byte, 1);
-    (void)r;
+    if (r > 0)
+        return;
+    if (r == 0)
+        return;
+    return;
 }
 
 void Server::handle_signal_pipe()
