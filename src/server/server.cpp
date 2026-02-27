@@ -768,16 +768,9 @@ bool Server::write_static_file_chunk(ClientCon& conn)
         if (to_read > conn.file_bytes_remaining)
             to_read = conn.file_bytes_remaining;
 
-        ssize_t read_bytes;
-        do
-        {
-            read_bytes = read(conn.file_fd, conn.file_buf.data(), to_read);
-        } while (read_bytes < 0 && errno == EINTR);
-
+        ssize_t read_bytes = read(conn.file_fd, conn.file_buf.data(), to_read);
         if (read_bytes < 0)
         {
-            if (errno == EAGAIN || errno == EWOULDBLOCK)
-                return true;
             close_client(conn.fd);
             return false;
         }

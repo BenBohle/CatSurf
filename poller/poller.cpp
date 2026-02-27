@@ -43,6 +43,19 @@ namespace event
     }
 #endif
 
+#ifndef _WIN32
+    int socket_pending_error(int fd)
+    {
+      int socket_error = 0;
+      socklen_t len = sizeof(socket_error);
+      if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &len) != 0)
+      {
+        return -1;
+      }
+      return socket_error;
+    }
+#endif
+
   }
 
 #if defined(__linux__)
@@ -600,7 +613,7 @@ namespace event
     ssize_t bytes = recv(fd, buffer, buffer_size, 0);
     if (bytes < 0)
     {
-      if (errno == EAGAIN || errno == EWOULDBLOCK)
+      if (socket_pending_error(fd) == 0)
       {
         return 0; // No data available
       }
@@ -628,7 +641,7 @@ namespace event
     ssize_t written = send(fd, data, size, 0);
     if (written < 0)
     {
-      if (errno == EAGAIN || errno == EWOULDBLOCK)
+      if (socket_pending_error(fd) == 0)
       {
         return 0; // Would block
       }

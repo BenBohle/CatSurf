@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <arpa/inet.h>
-#include <cerrno>
 #include <csignal>
 #include <cctype>
 #include <cstring>
@@ -462,12 +461,7 @@ void CgiManager::handleEvent(int fd, bool readable, bool writable)
                     return;
                 }
                 else
-                {
-                    if (errno == EAGAIN || errno == EWOULDBLOCK)
-                        break;
-                    cleanupProcess(*it->second, CgiTermination::ExecFailure, 502);
-                    return;
-                }
+                    break;
             }
             enforceBackpressure(proc);
         }
@@ -510,7 +504,7 @@ void CgiManager::handleEvent(int fd, bool readable, bool writable)
                 proc.stdin_closed = true;
             }
         }
-        else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+        else if (n < 0)
         {
             poller.remove(proc.stdin_fd);
             close(proc.stdin_fd);
@@ -550,16 +544,7 @@ void CgiManager::handleEvent(int fd, bool readable, bool writable)
                 return;
             }
             else
-            {
-                if (errno == EAGAIN || errno == EWOULDBLOCK)
-                    break;
-                poller.remove(fd);
-                close(fd);
-                stderr_map.erase(err_it);
-                proc.stderr_fd = -1;
-                proc.stderr_closed = true;
-                return;
-            }
+                break;
         }
         return;
     }
