@@ -353,6 +353,7 @@ void Server::read_client(int client_fd)
 
         if (state == REQUEST_LINE || state == HEADERS)
             return;
+
         if (state == BODY || state == COMPLETE)
         {
             std::string host = conn.req.getHeaderVal("host");
@@ -362,6 +363,17 @@ void Server::read_client(int client_fd)
                 fallback_error(conn, 500);
                 return;
             }
+
+            if (state == BODY)
+            {
+                parsedRequest req = conn.req.getRequest();
+                Router r(*conn.servConf, req);
+                Route routy = r.route();
+                bool upload_request = (routy.type == UPLOAD && req.method == "POST");
+                if (!upload_request)
+                    return;
+            }
+
             process_request(conn);
 
             if (conn.keep_alive && state == COMPLETE)
@@ -388,6 +400,18 @@ void Server::process_request(ClientCon& conn)
 
     Router r(*conn.servConf, req);
     Route routy = r.route();
+    size_t max_body_size = conn.servConf->client_max_body_size;
+    if (routy.location && routy.location->client_max_body_size > 0)
+        max_body_size = routy.location->client_max_body_size;
+    if (max_body_size > 0)
+    {
+        if ((!req.chunked && req.content_length > max_body_size) || req.body.size() > max_body_size)
+        {
+            fallback_error(conn, PayloadTooLarge);
+            return;
+        }
+    }
+
     bool botdetect_enabled = !routy.location || routy.location->botdetect;
 
     if (botdetect_enabled)

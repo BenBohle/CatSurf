@@ -509,15 +509,74 @@ ParseState HttpRequest::parseRequest(const char* data, size_t len)
         }
         else if (state == BODY)
         {
+            auto fail_body = [&](ErrorCode code, const std::string& info) -> ParseState
+            {
+                error_code = code;
+                error_info = info;
+                state = ERROR;
+                return state;
+            };
+
             if (!content_type.empty() && content_type.find("multipart/form-data") != std::string::npos)
                 MPFlag = true;
+
             if (chunked)
-                body = buffer;
-            else
             {
-                body = buffer.substr(0, content_length);
-                buffer.erase(0, content_length);
+                while (true)
+                {
+                    size_t line_end = buffer.find("\r\n");
+                    if (line_end == std::string::npos)
+                        return state;
+
+                    std::string chunk_size_str = buffer.substr(0, line_end);
+                    size_t ext_sep = chunk_size_str.find(';');
+                    if (ext_sep != std::string::npos)
+                        chunk_size_str = chunk_size_str.substr(0, ext_sep);
+
+                    unsigned long long chunk_size = 0;
+                    try
+                    {
+                        chunk_size = std::stoull(chunk_size_str, nullptr, 16);
+                    }
+                    catch (const std::exception&)
+                    {
+                        return fail_body(BadRequest, "Invalid chunk size");
+                    }
+
+                    if (chunk_size == 0)
+                    {
+                        if (buffer.size() < line_end + 4)
+                            return state;
+                        if (buffer.compare(line_end + 2, 2, "\r\n") != 0)
+                            return fail_body(BadRequest, "Invalid chunk terminator");
+                        buffer.erase(0, line_end + 4);
+                        state = COMPLETE;
+                        return state;
+                    }
+
+                    const size_t chunk_len = static_cast<size_t>(chunk_size);
+                    const size_t required = line_end + 2 + chunk_len + 2;
+                    if (buffer.size() < required)
+                        return state;
+                    if (buffer[line_end + 2 + chunk_len] != '\r' || buffer[line_end + 2 + chunk_len + 1] != '\n')
+                        return fail_body(BadRequest, "Invalid chunk terminator");
+                    if (body.size() + chunk_len > MAX_CONT_LEN)
+                        return fail_body(PayloadTooLarge, "Payload too large");
+
+                    body.append(buffer, line_end + 2, chunk_len);
+                    buffer.erase(0, required);
+                }
             }
+
+            if (buffer.size() < content_length)
+            {
+                body = buffer;
+                return state;
+            }
+
+            body = buffer.substr(0, content_length);
+            buffer.erase(0, content_length);
+            state = COMPLETE;
             return state;
         }
     }
