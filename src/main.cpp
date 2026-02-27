@@ -18,4 +18,5 @@ int main(int argc, char* argv[])
         std::cerr << "Server error: " << ex.what() << "\n";
         return 1;
     }
+    return 0;
 }
