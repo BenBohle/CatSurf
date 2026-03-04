@@ -68,7 +68,11 @@ void ConfigParser::setServerDirective(const std::string& key, const std::vector<
     }
     else if (key == "error_page")
     {
-        serv.error_page.clear();
+        if (!serv.error_pages_customized)
+        {
+            serv.error_page.clear();
+            serv.error_pages_customized = true;
+        }
         const std::string& path = value.back();
         for (size_t i = 0; i < value.size() - 1; i++)
         {
@@ -80,6 +84,10 @@ void ConfigParser::setServerDirective(const std::string& key, const std::vector<
             catch (const std::exception&)
             {
                 throw std::runtime_error("Invalid error_page code: " + value[i]);
+            }
+            if (serv.error_page.count(code))
+            {
+                throw std::runtime_error("Duplicate error_page entry for code: " + value[i]);
             }
             serv.error_page[code] = path;
         }

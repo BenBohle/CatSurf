@@ -50,6 +50,7 @@ struct ServerConfig
     size_t client_max_body_size = 1024 * 1024;
     std::vector<std::string> index = {"index.html"};
     std::map<int, std::string> error_page = {{400, "error_pages/400.html"}};
+    bool error_pages_customized = false;
     std::vector<LocationConfig> locations;
 };
 
