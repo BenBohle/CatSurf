@@ -479,7 +479,19 @@ ParseState HttpRequest::parseRequest(const char* data, size_t len)
                 setError(BadRequest, "invalid header");
                 return state;
             }
-            size_t pos = buffer.find("\r\n\r\n");
+            size_t pos = std::string::npos;
+            size_t consumed = 0;
+
+            if (buffer.size() >= 2 && buffer.compare(0, 2, "\r\n") == 0)
+            {
+                pos = 0;
+                consumed = 2;
+            }
+            else
+            {
+                pos = buffer.find("\r\n\r\n");
+                consumed = 4;
+            }
 #ifdef DEBUG
             std::cout << "[PARSER] headers_pos="
                       << (pos == std::string::npos ? -1 : static_cast<int>(pos))
@@ -493,7 +505,7 @@ ParseState HttpRequest::parseRequest(const char* data, size_t len)
 #ifdef DEBUG
                 std::cout << "[PARSER] headers ok count=" << headers.size() << "\n";
 #endif
-                buffer.erase(0, pos + 4);
+                buffer.erase(0, pos + consumed);
                 if (content_length == 0 && !chunked)
                     state = COMPLETE;
                 else
