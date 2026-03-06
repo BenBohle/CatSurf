@@ -294,7 +294,6 @@ bool isTime(const std::string& str)
     }
 }
 
-// add server errors 0-3
 bool isRedirect(const std::vector<std::string>& values)
 {
     if (values.size() > 2 || values.size() < 1)
@@ -304,9 +303,10 @@ bool isRedirect(const std::vector<std::string>& values)
     try
     {
         int code = std::stoi(values[0]);
-        if (code == 400 || code == 403 || code == 404 || code == 405)
+        if (code == 400 || code == 403 || code == 404 || code == 405
+            || code == 500 || code == 501)
             return true;
-        if (!values[1].empty() && (isPath(values[1]) || isUrl(values[1])) &&
+        if (values.size() == 2 && (isPath(values[1]) || isUrl(values[1])) &&
             (code == 301 || code == 302 || code == 303 || code == 307 || code == 308))
             return true;
         return false;
