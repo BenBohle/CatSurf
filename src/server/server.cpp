@@ -330,6 +330,46 @@ void Server::read_client(int client_fd)
         close_client(client_fd);
         return;
     }
+
+    // CGI body streaming
+    if (conn.cgi_active && conn.cgi_streaming && cgi_manager)
+    {
+        std::string data(buffer.data(), bytes);
+        if (conn.cgi_chunked)
+        {
+            ParseState state = BODY;
+            std::string decoded = processChunkedBody(conn, data, state);
+            if (state == ERROR)
+            {
+                cgi_manager->handleClientClose(client_fd);
+                close_client(client_fd);
+                return;
+            }
+            if (!decoded.empty())
+                cgi_manager->feedStdin(client_fd, decoded);
+            if (state == COMPLETE)
+            {
+                conn.cgi_streaming = false;
+                cgi_manager->finishStdin(client_fd);
+            }
+        }
+        else
+        {
+            size_t to_feed = std::min(static_cast<size_t>(bytes), conn.cgi_body_remaining);
+            if (to_feed > 0)
+            {
+                cgi_manager->feedStdin(client_fd, std::string(buffer.data(), to_feed));
+                conn.cgi_body_remaining -= to_feed;
+            }
+            if (conn.cgi_body_remaining == 0)
+            {
+                conn.cgi_streaming = false;
+                cgi_manager->finishStdin(client_fd);
+            }
+        }
+        return;
+    }
+
     size_t to_write = 0;
     if (conn.upload_active)
     {
@@ -371,7 +411,8 @@ void Server::read_client(int client_fd)
                 Router r(*conn.servConf, req);
                 Route routy = r.route();
                 bool upload_request = (routy.type == UPLOAD && req.method == "POST");
-                if (!upload_request)
+                bool cgi_request = (routy.type == CGI);
+                if (!upload_request && !cgi_request)
                     return;
             }
 
@@ -467,11 +508,6 @@ void Server::process_request(ClientCon& conn)
                 conn.res_ready = true;
                 poller->update(conn.fd, false, true);
                 conn.last_act = std::time(nullptr);
-#ifdef DEBUG
-                std::cout << "[BOT] blocked fp=" << fingerprint
-                          << " rpm=" << bot_analysis.requests_per_minute
-                          << " score=" << bot_analysis.suspicious_score << "\n";
-#endif
                 return;
             }
         }
@@ -487,21 +523,7 @@ void Server::process_request(ClientCon& conn)
 
     if (routy.type == CGI)
     {
-#ifdef DEBUG
-        std::cout << "[ROUTE] CGI uri=" << req.uri
-                  << " query=" << req.query
-                  << " script=" << routy.script_path
-                  << " path_info=" << routy.path_info << "\n";
-#endif
-        if (!cgi_manager || !cgi_manager->launch(routy, req, conn, *conn.servConf))
-        {
-#ifdef DEBUG
-            std::cout << "[ROUTE] CGI launch failed" << "\n";
-#endif
-            fallback_error(conn, BadGateway);
-            return;
-        }
-        conn.last_act = std::time(nullptr);
+        handleCgiRequest(conn, routy, req);
         return;
     }
 
@@ -1011,6 +1033,62 @@ void Server::startUpload(ClientCon& conn, const Route& route, const parsedReques
         uploadComplete(conn); 
     else
         conn.upload_active = true;
+}
+
+void Server::handleCgiRequest(ClientCon& conn, const Route& route, const parsedRequest& req)
+{
+#ifdef DEBUG
+    std::cout << "[ROUTE] CGI uri=" << req.uri
+              << " query=" << req.query
+              << " script=" << route.script_path
+              << " path_info=" << route.path_info << "\n";
+#endif
+
+    // For chunked requests, decode the initial body before launching CGI
+    parsedRequest cgi_req = req;
+    if (req.chunked && !req.body.empty())
+    {
+        conn.cgi_chunked = true;
+        ParseState chunk_state = BODY;
+        std::string decoded = processChunkedBody(conn, req.body, chunk_state);
+        if (chunk_state == ERROR)
+        {
+            fallback_error(conn, BadRequest);
+            return;
+        }
+        cgi_req.body = decoded;
+    }
+
+    if (!cgi_manager || !cgi_manager->launch(route, cgi_req, conn, *conn.servConf))
+    {
+#ifdef DEBUG
+        std::cout << "[ROUTE] CGI launch failed\n";
+#endif
+        fallback_error(conn, BadGateway);
+        return;
+    }
+
+    // Setup streaming for remaining body data
+    ParseState state = conn.req.getState();
+    if (state == BODY)
+    {
+        conn.cgi_streaming = true;
+        conn.cgi_chunked = req.chunked;
+        if (!req.chunked && req.content_length > req.body.size())
+            conn.cgi_body_remaining = req.content_length - req.body.size();
+        else if (!req.chunked)
+        {
+            conn.cgi_streaming = false;
+            cgi_manager->finishStdin(conn.fd);
+        }
+    }
+    else
+    {
+        // Body complete, close stdin immediately
+        cgi_manager->finishStdin(conn.fd);
+    }
+
+    conn.last_act = std::time(nullptr);
 }
 
 std::string Server::processChunkedBody(ClientCon& conn, std::string buffer, ParseState& state)
