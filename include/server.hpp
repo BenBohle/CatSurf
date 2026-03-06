@@ -69,6 +69,11 @@ struct ClientCon
     bool cgi_force_close;
     bool close_after_send;
 
+    // CGI body streaming state
+    bool cgi_streaming = false;
+    size_t cgi_body_remaining = 0;
+    bool cgi_chunked = false;
+
     bool upload_active = false;
     std::ofstream upload_file;
     bool MPFlag = false;
@@ -138,6 +143,7 @@ class Server
     std::string processChunkedBody(ClientCon& conn, std::string buffer, ParseState& state);
     void uploadComplete(ClientCon& conn);
     void startUpload(ClientCon& conn, const Route& route, const parsedRequest& req);
+    void handleCgiRequest(ClientCon& conn, const Route& route, const parsedRequest& req);
     void client_write(int client_fd);
     const ServerConfig* findServer(uint32_t ip, uint16_t port, const std::string& host_header);
     void process_request(ClientCon& conn);
