@@ -632,59 +632,62 @@ void CgiManager::cleanupProcess(CgiProcess& proc, CgiTermination reason, int sta
     int stdin_fd = proc.stdin_fd;
     int stdout_fd = proc.stdout_fd;
     int stderr_fd = proc.stderr_fd;
+    pid_t pid = proc.pid;
+    ClientCon* client = proc.client;
 
     if (stdin_fd >= 0)
         stdin_map.erase(stdin_fd);
-    if (stdout_fd >= 0)
-        processes.erase(stdout_fd);
     if (stderr_fd >= 0)
         stderr_map.erase(stderr_fd);
-    client_map.erase(proc.client ? proc.client->fd : -1);
-    pid_map.erase(proc.pid);
+    if (client)
+        client_map.erase(client->fd);
+    if (pid > 0)
+        pid_map.erase(pid);
 
     if (stdin_fd >= 0)
     {
         poller.remove(stdin_fd);
         close(stdin_fd);
         proc.stdin_fd = -1;
+        proc.stdin_closed = true;
     }
     if (stdout_fd >= 0)
     {
         poller.remove(stdout_fd);
         close(stdout_fd);
         proc.stdout_fd = -1;
+        proc.stdout_closed = true;
     }
     if (stderr_fd >= 0)
     {
         poller.remove(stderr_fd);
         close(stderr_fd);
         proc.stderr_fd = -1;
+        proc.stderr_closed = true;
     }
 
-    if (proc.pid > 0)
+    if (pid > 0)
     {
-        kill(proc.pid, SIGTERM);
+        kill(pid, SIGTERM);
         int child_status = 0;
-        if (waitpid(proc.pid, &child_status, WNOHANG) == 0)
-            kill(proc.pid, SIGKILL);
-        pid_map.erase(proc.pid);
+        if (waitpid(pid, &child_status, WNOHANG) == 0)
+            kill(pid, SIGKILL);
         proc.pid = -1;
     }
 
-    if (proc.client)
+    bool client_gone = (reason == CgiTermination::ClientGone || reason == CgiTermination::ServerShutdown);
+    if (client)
     {
-        client_map.erase(proc.client->fd);
-        if (reason == CgiTermination::ClientGone || reason == CgiTermination::ServerShutdown)
+        if (client_gone)
         {
-            proc.client->cgi_active = false;
-            return;
+            client->cgi_active = false;
+            client->cgi_force_close = false;
         }
-
-        if (proc.response_started)
+        else if (proc.response_started)
         {
             if (proc.force_close || reason != CgiTermination::Normal)
-                proc.client->keep_alive = false;
-            proc.client->cgi_force_close = false;
+                client->keep_alive = false;
+            client->cgi_force_close = false;
         }
         else
         {
@@ -695,17 +698,31 @@ void CgiManager::cleanupProcess(CgiProcess& proc, CgiTermination reason, int sta
             res.setHeader("Content-Length", std::to_string(body.size()));
             res.setHeader("Content-Type", "text/html");
             res.setBody(body);
-            proc.client->response_out = res.buildResponse();
-            proc.client->res_ready = true;
-            proc.client->keep_alive = false;
-            proc.client->close_after_send = true;
-            poller.update(proc.client->fd, false, true);
+            client->response_out = res.buildResponse();
+            client->res_ready = true;
+            client->keep_alive = false;
+            client->close_after_send = true;
+            poller.update(client->fd, false, true);
         }
-        proc.client->cgi_active = false;
-        proc.client->cgi_force_close = false;
-        if (proc.client->keep_alive && !proc.client->res_ready && proc.client->response_out.empty())
+        client->cgi_active = false;
+        client->cgi_force_close = false;
+        if (!client_gone && client->keep_alive && !client->res_ready && client->response_out.empty())
         {
-            poller.update(proc.client->fd, true, false);
+            poller.update(client->fd, true, false);
+        }
+    }
+
+    if (stdout_fd >= 0)
+        processes.erase(stdout_fd);
+    else
+    {
+        for (auto it = processes.begin(); it != processes.end(); ++it)
+        {
+            if (it->second.get() == &proc)
+            {
+                processes.erase(it);
+                break;
+            }
         }
     }
 }

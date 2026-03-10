@@ -126,7 +126,7 @@ void ConfigParser::parseLocation(const std::vector<std::string>& tokens, size_t&
     }
     if (!loc.return_.empty())
     {
-        if (!loc.return_[1].empty() && loc.path == loc.return_[1])
+        if (loc.return_.size() > 1 && !loc.return_[1].empty() && loc.path == loc.return_[1])
             throw std::runtime_error("Return loop detected");
     }
     serv.locations.push_back(loc);
