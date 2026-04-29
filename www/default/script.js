@@ -167,13 +167,12 @@ let docsMarkdown = 'Loading...';
 
 async function fetchDocsMarkdown() {
   try {
-    const response = await fetch('https://raw.githubusercontent.com/YunShenMiao/CatSurf/1810f67bb0a871640c9079239178e1347fe8ecde/README.md');
+    const response = await fetch('https://raw.github.com/BenBohle/CatSurf/982f99d1c3fcba738f453365ee6020196ca80519/README.md');
     docsMarkdown = await response.text();
   } catch {
     docsMarkdown = 'Failed to load documentation.';
   }
 }
-
 // Fetch the markdown as soon as possible
 fetchDocsMarkdown();
 
