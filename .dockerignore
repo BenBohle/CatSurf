@@ -1,0 +1,11 @@
+.git
+.gitignore
+.vscode
+.cursor
+obj
+webserv
+*.o
+*.d
+*.log
+webserv.pid
+logs

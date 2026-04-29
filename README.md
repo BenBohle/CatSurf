@@ -10,6 +10,11 @@ The repository contains several small demo sites:
 - `www/catshare` for uploads and file serving
 - `www/catinder` for a CGI-driven Cat-Tinder
 
+## the default config is hosted on
+
+### https://catsurf.benbohle.cloud
+
+ 
 ## Description
 
 The goal of this project is to build a real web server from scratch and understand how HTTP works below the framework level. Instead of relying on an existing server such as Nginx or Apache, CatSurf implements its own configuration parsing, request parsing, routing, response generation, upload handling and CGI execution.
